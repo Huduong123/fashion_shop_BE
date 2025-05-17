@@ -23,16 +23,16 @@ public class User {
     private int id;
 
     @Column(name = "username")
-    private String userName;
+    private String username;
 
     @Column(name = "password")
-    private String passWord;
+    private String password;
 
     @Column(name = "email")
     private String email;
 
     @Column(name = "full_name")
-    private String fullName;
+    private String fullname;
 
     @Column(name = "phone")
     private  String phone;
@@ -43,10 +43,10 @@ public class User {
     @Column(name = "enable")
     private boolean enabled;
 
-    @Column(name = "create_at")
+    @Column(name = "created_at")
     protected LocalDateTime createdAt;
 
-    @Column(name = "update_at")
+    @Column(name = "updated_at")
     protected LocalDateTime updatedAt;
     @PrePersist
     protected void onCreate() {

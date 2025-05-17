@@ -8,10 +8,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserCreateAdminDTO {
-    private String userName;
-    private String passWord;
+    private String username;
+    private String password;
     private String email;
-    private String fullName;
+    private String fullname;
     private String phone;
     private String address;
     private boolean enabled;

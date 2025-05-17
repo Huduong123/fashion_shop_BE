@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class UserUpdateProfileDTO {
     private String email;
-    private String fullName;
+    private String fullname;
     private String phone;
     private String address;
 }

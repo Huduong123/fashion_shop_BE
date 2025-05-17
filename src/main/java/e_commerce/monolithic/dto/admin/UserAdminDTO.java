@@ -11,9 +11,9 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class UserAdminDTO {
     private int id;
-    private String userName;
+    private String username;
     private String email;
-    private String fullName;
+    private String fullname;
     private String phone;
     private String address;
     private LocalDateTime createAt;

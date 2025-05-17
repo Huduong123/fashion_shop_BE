@@ -10,9 +10,9 @@ import lombok.NoArgsConstructor;
 
 public class UserProfileDTO {
     private int id;
-    private String userName;
+    private String username;
     private String email;
-    private String fullName;
+    private String fullname;
     private String phone;
     private String address;
     private boolean enabled;

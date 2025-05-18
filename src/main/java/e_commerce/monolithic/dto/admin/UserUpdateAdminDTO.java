@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 
 public class UserUpdateAdminDTO {
-    private int id; // để xác định user cần update
+    private Long id; // để xác định user cần update
     private String email;
     private String fullname;
     private String phone;

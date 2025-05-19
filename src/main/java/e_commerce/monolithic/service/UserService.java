@@ -16,4 +16,6 @@ public interface UserService {
     boolean existsByPhone(String phone);
 
     Optional<User> findByUsername(String username);
+
+    boolean isPasswordMatch(String rawPassword, String encodedPassword);
 }

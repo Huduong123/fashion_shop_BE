@@ -1,18 +1,19 @@
 package e_commerce.monolithic.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import org.springframework.security.core.GrantedAuthority;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "authorities")
 @Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Authority {
+public class Authority implements GrantedAuthority {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -38,5 +39,9 @@ public class Authority {
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+    }
+    @Override
+    public String getAuthority() {
+        return authority;
     }
 }

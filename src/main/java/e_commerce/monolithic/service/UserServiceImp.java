@@ -1,20 +1,20 @@
 package e_commerce.monolithic.service;
 
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
 import e_commerce.monolithic.dto.auth.UserLoginDTO;
 import e_commerce.monolithic.dto.auth.UserRegisterDTO;
 import e_commerce.monolithic.entity.User;
 import e_commerce.monolithic.repository.UserRepository;
 import e_commerce.monolithic.security.JwtUtil;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
-import java.util.Optional;
+import jakarta.transaction.Transactional;
 
 @Service
-public class UserServiceImp implements UserService{
+public class UserServiceImp implements UserService {
 
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
@@ -27,9 +27,10 @@ public class UserServiceImp implements UserService{
     }
 
     @Override
+    @Transactional
     public String login(UserLoginDTO userLoginDTO) {
         Optional<User> userOpt = userRepository.findByUsername(userLoginDTO.getUsername());
-        if(userOpt.isPresent()){
+        if (userOpt.isPresent()) {
             User user = userOpt.get();
             if (passwordEncoder.matches(userLoginDTO.getPassword(), user.getPassword()) && user.isEnabled()) {
                 return jwtUtil.generateToken(user.getUsername());
@@ -39,8 +40,8 @@ public class UserServiceImp implements UserService{
         return null;
     }
 
-
     @Override
+    @Transactional
     public User register(UserRegisterDTO userRegisterDTO) {
         User user = new User();
         user.setUsername(userRegisterDTO.getUsername());
@@ -55,22 +56,38 @@ public class UserServiceImp implements UserService{
     }
 
     @Override
+    @Transactional
     public boolean existsByUsername(String username) {
         return userRepository.existsByUsername(username);
     }
 
     @Override
+    @Transactional
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
     }
 
     @Override
+    @Transactional
     public boolean existsByPhone(String phone) {
         return userRepository.existsByPhone(phone);
     }
 
     @Override
+    @Transactional
     public Optional<User> findByUsername(String username) {
-        return userRepository.findByUsername(username);
+        Optional<User> userOpt = userRepository.findByUsername(username);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            // Force load authorities
+            user.getAuthorities().size();
+        }
+        return userOpt;
+    }
+
+    @Override
+    @Transactional
+    public boolean isPasswordMatch(String rawPassword, String encodedPassword) {
+        return passwordEncoder.matches(rawPassword, encodedPassword);
     }
 }

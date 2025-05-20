@@ -1,5 +1,6 @@
 package e_commerce.monolithic.service;
 
+import e_commerce.monolithic.dto.auth.AdminLoginDTO;
 import e_commerce.monolithic.dto.auth.UserLoginDTO;
 import e_commerce.monolithic.dto.auth.UserRegisterDTO;
 import e_commerce.monolithic.entity.User;
@@ -8,7 +9,7 @@ import java.util.Optional;
 
 public interface UserService {
     String login(UserLoginDTO userLoginDTO);
-
+    String loginAdmin(AdminLoginDTO adminLoginDTO);
     User register(UserRegisterDTO userRegisterDTO);
 
     boolean existsByUsername(String username);

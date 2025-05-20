@@ -43,7 +43,7 @@ public class User implements UserDetails {
     @Column(name = "address")
     private String address;
 
-    @Column(name = "enable")
+    @Column(name = "enabled")
     private boolean enabled;
 
     @Column(name = "created_at")

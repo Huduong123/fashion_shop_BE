@@ -15,18 +15,24 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 public class SecurityConfig {
 
-    @Autowired
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final  JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    }
 
+    private static final String [] PUBLIC_ENDPOINTS = {
+            "api/users/login",
+            "api/users/register",
+            "api/admin/login"
+    };
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable());
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         http.authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/users/login", "/api/users/register").permitAll()
-                .requestMatchers(("/api/admin/login")).permitAll()
+                .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                 .requestMatchers("/api/admin/authorities/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
         );

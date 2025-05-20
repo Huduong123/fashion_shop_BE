@@ -1,7 +1,11 @@
 package e_commerce.monolithic.controller.admin;
 
-import e_commerce.monolithic.dto.admin.AuthorityDTO;
+import e_commerce.monolithic.dto.admin.authorities.AuthorityCreateDTO;
+import e_commerce.monolithic.dto.admin.authorities.AuthorityDTO;
+import e_commerce.monolithic.dto.admin.authorities.AuthorityResponseDTO;
+import e_commerce.monolithic.dto.admin.authorities.AuthorityUpdateDTO;
 import e_commerce.monolithic.service.AuthorityService;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -14,45 +18,43 @@ import java.util.List;
 public class AuthorityController {
 
     private final AuthorityService authorityService;
+
     @Autowired
     public AuthorityController(AuthorityService authorityService) {
         this.authorityService = authorityService;
     }
+
     @GetMapping
-    public ResponseEntity<List<AuthorityDTO>> getAllAuthorities() {
+    public ResponseEntity<List<AuthorityResponseDTO>> getAllAuthorities() {
         return ResponseEntity.ok(authorityService.findAll());
     }
 
     @PostMapping
-    public ResponseEntity<AuthorityDTO> createAuthority(
-        @RequestParam Long userId,
-        @RequestParam @NotBlank String authority
-    ){
-        AuthorityDTO createdAuthority = authorityService.createAuthority(userId, authority);
-        return ResponseEntity.ok(createdAuthority);
+    public ResponseEntity<AuthorityResponseDTO> createAuthority(@RequestBody @Valid AuthorityCreateDTO authorityCreateDTO) {
+        AuthorityResponseDTO created = authorityService.createAuthority(authorityCreateDTO);
+        return   ResponseEntity.ok(created);
     }
 
     @PutMapping
-    public ResponseEntity<AuthorityDTO> updateAuthority(
-            @PathVariable("id") Long authorityId,
-            @RequestParam @NotBlank String authority
-    ){
-        AuthorityDTO updatedAuthority = authorityService.updateAuthority(authorityId, authority);
-        return ResponseEntity.ok(updatedAuthority);
+    public ResponseEntity<AuthorityResponseDTO> updateAuthority(
+            @RequestBody @Valid AuthorityUpdateDTO authorityUpdateDTO
+    ) {
+        AuthorityResponseDTO updated = authorityService.updateAuthority(authorityUpdateDTO);
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteAuthority(@PathVariable("id") Long authorityId) {
+    public ResponseEntity<String> deleteAuthority(@PathVariable("id") Long authorityId) {
         authorityService.deleteAuthority(authorityId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok("Xóa authority thành công với ID : "+ authorityId );
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<AuthorityDTO>> searchAuthorities(
+    public ResponseEntity<List<AuthorityResponseDTO>> searchAuthorities(
             @RequestParam(required = false) String username,
             @RequestParam(required = false) String authority
     ) {
-        List<AuthorityDTO> result = authorityService.search(username, authority);
+        List<AuthorityResponseDTO> result = authorityService.search(username, authority);
         return ResponseEntity.ok(result);
     }
 }

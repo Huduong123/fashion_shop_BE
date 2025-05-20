@@ -1,19 +1,23 @@
 package e_commerce.monolithic.service;
 
-import e_commerce.monolithic.dto.admin.AuthorityDTO;
-import e_commerce.monolithic.entity.Authority;
+import e_commerce.monolithic.dto.admin.authorities.AuthorityCreateDTO;
+import e_commerce.monolithic.dto.admin.authorities.AuthorityDTO;
+import e_commerce.monolithic.dto.admin.authorities.AuthorityResponseDTO;
+import e_commerce.monolithic.dto.admin.authorities.AuthorityUpdateDTO;
 
 import java.util.List;
 
 public interface AuthorityService {
 
-    List<AuthorityDTO> findAll();
+    List<AuthorityResponseDTO> findAll();
 
-    AuthorityDTO createAuthority(Long userId, String authorityRole);
+    AuthorityResponseDTO createAuthority(AuthorityCreateDTO authorityCreateDTO);
 
-    AuthorityDTO updateAuthority(Long authorityId, String authorityRole);
+    AuthorityResponseDTO updateAuthority(AuthorityUpdateDTO authorityUpdateDTO);
 
     void deleteAuthority(Long authorityId);
 
-    List<AuthorityDTO> search(String username, String authority);
+    List<AuthorityResponseDTO> search(String username, String authority);
+
+
 }

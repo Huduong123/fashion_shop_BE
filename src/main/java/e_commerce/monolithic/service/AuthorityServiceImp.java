@@ -4,10 +4,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import e_commerce.monolithic.dto.admin.authorities.AuthorityCreateDTO;
+import e_commerce.monolithic.dto.admin.authorities.AuthorityResponseDTO;
+import e_commerce.monolithic.dto.admin.authorities.AuthorityUpdateDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import e_commerce.monolithic.dto.admin.AuthorityDTO;
+import e_commerce.monolithic.dto.admin.authorities.AuthorityDTO;
 import e_commerce.monolithic.entity.Authority;
 import e_commerce.monolithic.entity.User;
 import e_commerce.monolithic.mapper.AuthorityMapper;
@@ -30,40 +33,52 @@ public class AuthorityServiceImp implements AuthorityService {
 
     @Override
     @Transactional
-    public List<AuthorityDTO> findAll() {
+    public List<AuthorityResponseDTO> findAll() {
         return authorityRepository.findAll()
                 .stream()
-                .map(AuthorityMapper::toAuthorityDTO)
+                .map(AuthorityMapper::toResAuthorityDTO)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional
-    public AuthorityDTO createAuthority(Long userId, String authorityRole) {
-        if (!authorityRole.startsWith("ROLE_")) {
+    public AuthorityResponseDTO createAuthority(AuthorityCreateDTO authorityCreateDTO) {
+        if (!authorityCreateDTO.getAuthority().startsWith("ROLE_")) {
             throw new IllegalArgumentException("Authority roles must start with 'ROLE_'");
         }
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User with ID" + userId + "not found"));
+        Long userId = authorityCreateDTO.getUserId();
+        String authorityStr = authorityCreateDTO.getAuthority();
+
+        if (authorityRepository.existsByUserIdAndAuthority(userId, authorityStr)) {
+            throw new IllegalArgumentException("User with ID " + userId + " already have role " + authorityStr);
+        }
+
+        User user = userRepository.findById(authorityCreateDTO.getUserId())
+                .orElseThrow(() -> new EntityNotFoundException("User with ID" + authorityCreateDTO.getUserId() + "not found"));
 
         Authority authority = new Authority();
-        authority.setAuthority(authorityRole);
+        authority.setAuthority(authorityCreateDTO.getAuthority());
         authority.setUser(user);
-        return AuthorityMapper.toAuthorityDTO(authorityRepository.save(authority));
+        return AuthorityMapper.toResAuthorityDTO(authorityRepository.save(authority));
     }
 
     @Override
     @Transactional
-    public AuthorityDTO updateAuthority(Long authorityId, String authorityRole) {
-        Optional<Authority> optionalAuthority = authorityRepository.findById(authorityId);
-        if (!optionalAuthority.isPresent()) {
-            throw new EntityNotFoundException("Authority with ID" + authorityId + "not found");
-        }
-        Authority authority = optionalAuthority.get();
-        authority.setAuthority(authorityRole);
+    public AuthorityResponseDTO updateAuthority(AuthorityUpdateDTO authorityUpdateDTO) {
+        Authority authority = authorityRepository.findById(authorityUpdateDTO.getId())
+                .orElseThrow(() -> new EntityNotFoundException("Authority with ID" + authorityUpdateDTO.getId() + "not found"));
 
-        return AuthorityMapper.toAuthorityDTO(authorityRepository.save(authority));
+        String newAuthority = authorityUpdateDTO.getAuthority();
+        Long userId = authority.getUser().getId();
+
+        boolean exists = authorityRepository.existsByUserIdAndAuthorityAndIdNot(userId, authority.getAuthority(), authority.getId());
+        if (exists) {
+            throw new IllegalArgumentException("User ID " + userId + " already have role " + newAuthority + " ");
+        }
+
+        authority.setAuthority(authorityUpdateDTO.getAuthority());
+        return AuthorityMapper.toResAuthorityDTO(authorityRepository.save(authority));
     }
 
     @Override
@@ -77,10 +92,12 @@ public class AuthorityServiceImp implements AuthorityService {
 
     @Override
     @Transactional
-    public List<AuthorityDTO> search(String username, String authority) {
+    public List<AuthorityResponseDTO> search(String username, String authority) {
         return authorityRepository.searchByUsernameAndAuthority(username, authority)
                 .stream()
-                .map(AuthorityMapper::toAuthorityDTO)
+                .map(AuthorityMapper::toResAuthorityDTO)
                 .collect(Collectors.toList());
     }
+
+
 }

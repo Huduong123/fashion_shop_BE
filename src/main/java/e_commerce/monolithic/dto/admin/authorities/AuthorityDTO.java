@@ -1,4 +1,4 @@
-package e_commerce.monolithic.dto.admin;
+package e_commerce.monolithic.dto.admin.authorities;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

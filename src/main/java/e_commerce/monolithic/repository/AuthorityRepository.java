@@ -16,6 +16,11 @@ public interface AuthorityRepository extends JpaRepository<Authority, Long> {
             + "AND (:authority IS NULL OR a.authority LIKE %:authority%)")
     List<Authority> searchByUsernameAndAuthority(@Param("username") String username,
                                                  @Param("authority") String authority);
+
+
+    boolean existsByUserIdAndAuthority(Long userID, String authority);
+
+    boolean existsByUserIdAndAuthorityAndIdNot(Long userID, String authority, Long id);
     // Tìm theo userID và quyền (tùy theo yêu cầu)
 //    List<Authority> findByUserIdAndAuthorityContaining(Long userId, String authority);
 }

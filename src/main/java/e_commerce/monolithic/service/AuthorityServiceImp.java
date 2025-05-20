@@ -40,6 +40,10 @@ public class AuthorityServiceImp implements AuthorityService {
     @Override
     @Transactional
     public AuthorityDTO createAuthority(Long userId, String authorityRole) {
+        if (!authorityRole.startsWith("ROLE_")) {
+            throw new IllegalArgumentException("Authority roles must start with 'ROLE_'");
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User with ID" + userId + "not found"));
 

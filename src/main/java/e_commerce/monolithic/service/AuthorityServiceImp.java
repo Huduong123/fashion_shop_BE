@@ -18,12 +18,15 @@ import e_commerce.monolithic.repository.AuthorityRepository;
 import e_commerce.monolithic.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class AuthorityServiceImp implements AuthorityService {
 
     private final AuthorityRepository authorityRepository;
     private final UserRepository userRepository;
+    private static final Logger logger = LoggerFactory.getLogger(AuthorityServiceImp.class);
 
     @Autowired
     public AuthorityServiceImp(AuthorityRepository authorityRepository, UserRepository userRepository) {
@@ -34,8 +37,16 @@ public class AuthorityServiceImp implements AuthorityService {
     @Override
     @Transactional
     public List<AuthorityResponseDTO> findAll() {
-        return authorityRepository.findAll()
-                .stream()
+
+        List<Authority> authorities = authorityRepository.findAll();
+        logger.info("Danh sách authority");
+        for (Authority auth : authorities) {
+            logger.info("Authority ID: {}, Role: {}, User: {}",
+                    auth.getId(),
+                    auth.getAuthority(),
+                    auth.getUser() != null ? auth.getUser().getUsername() : "N/A");
+        }
+        return authorities.stream()
                 .map(AuthorityMapper::toResAuthorityDTO)
                 .collect(Collectors.toList());
     }
@@ -60,7 +71,12 @@ public class AuthorityServiceImp implements AuthorityService {
         Authority authority = new Authority();
         authority.setAuthority(authorityCreateDTO.getAuthority());
         authority.setUser(user);
-        return AuthorityMapper.toResAuthorityDTO(authorityRepository.save(authority));
+
+        Authority savedAuthority = authorityRepository.save(authority);
+
+        logger.info("Authority '{}' đã được tạo thành công cho User '{}'", savedAuthority.getAuthority(), user.getUsername());
+
+        return AuthorityMapper.toResAuthorityDTO(savedAuthority);
     }
 
     @Override
@@ -77,24 +93,37 @@ public class AuthorityServiceImp implements AuthorityService {
             throw new IllegalArgumentException("User ID " + userId + " already have role " + newAuthority + " ");
         }
 
-        authority.setAuthority(authorityUpdateDTO.getAuthority());
-        return AuthorityMapper.toResAuthorityDTO(authorityRepository.save(authority));
+        authority.setAuthority(newAuthority);
+        Authority updatedAuthority = authorityRepository.save(authority);
+
+        logger.info("Authority ID {} đã được cập nhật thành '{}' cho User '{}'", updatedAuthority.getId(), updatedAuthority.getAuthority(), updatedAuthority.getUser().getUsername());
+
+        return AuthorityMapper.toResAuthorityDTO(updatedAuthority);
     }
 
     @Override
     @Transactional
     public void deleteAuthority(Long authorityId) {
         if (!authorityRepository.existsById(authorityId)) {
+            logger.warn("Delete fail: No find authority with ID {}", authorityId);
             throw new EntityNotFoundException("Authority with ID" + authorityId + "not found");
         }
         authorityRepository.deleteById(authorityId);
+        logger.info("Delete Authority with ID {}", authorityId);
     }
 
     @Override
     @Transactional
     public List<AuthorityResponseDTO> search(String username, String authority) {
-        return authorityRepository.searchByUsernameAndAuthority(username, authority)
-                .stream()
+        List<Authority> result = authorityRepository.searchByUsernameAndAuthority(username, authority);
+
+        logger.info("Đã tìm thấy {} authority khới với username='{}' và authority='{}'",
+                result.size(), username, authority);
+        for (Authority auth : result) {
+            logger.info("Find: Authority with ID {}, Role: {}, User: {}",
+                    auth.getId(), auth.getAuthority(), auth.getUser().getUsername());
+        }
+        return result.stream()
                 .map(AuthorityMapper::toResAuthorityDTO)
                 .collect(Collectors.toList());
     }

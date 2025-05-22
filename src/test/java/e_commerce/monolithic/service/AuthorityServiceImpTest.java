@@ -8,6 +8,7 @@ import e_commerce.monolithic.entity.Authority;
 import e_commerce.monolithic.entity.User;
 import e_commerce.monolithic.repository.AuthorityRepository;
 import e_commerce.monolithic.repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -139,4 +140,87 @@ class AuthorityServiceImpTest {
         assertEquals("ROLE_ADMIN", result.get(1).getAuthority());
         assertEquals("admin2", result.get(1).getUsername());
     }
+
+
+    // =================== TEST FAIL CASES -===================
+    @Test
+    void testCreateAuthority_Fail_InvalidRoleFormat(){
+        AuthorityCreateDTO dto  = new AuthorityCreateDTO(1L, "USER");
+        Exception ex = assertThrows(IllegalArgumentException.class, () -> {
+            authorityServiceImp.createAuthority(dto);
+        });
+
+        assertEquals("Authority roles must start with 'ROLE_'", ex.getMessage());
+    }
+
+    @Test
+    void testCreateAuthority_Fail_UserAlreadyHasRole(){
+        AuthorityCreateDTO dto  = new AuthorityCreateDTO(1L, "ROLE_ADMIN");
+
+        when(authorityRepository.existsByUserIdAndAuthority(1L, "ROLE_ADMIN")).thenReturn(true);
+
+        Exception ex = assertThrows(IllegalArgumentException.class, () -> {
+            authorityServiceImp.createAuthority(dto);
+        });
+
+        assertEquals("User with ID 1 already have role ROLE_ADMIN", ex.getMessage());
+    }
+
+    @Test
+    void testCreateAuthority_Fail_UserNotFound(){
+        AuthorityCreateDTO dto  = new AuthorityCreateDTO(999L, "ROLE_ADMIN");
+
+        when(authorityRepository.existsByUserIdAndAuthority(999L, "ROLE_ADMIN")).thenReturn(false);
+        when(authorityRepository.findById(999L)).thenReturn(Optional.empty());
+
+        Exception ex = assertThrows(EntityNotFoundException.class, () -> {
+            authorityServiceImp.createAuthority(dto);
+        });
+
+        assertEquals("User with ID 999 not found", ex.getMessage());
+    }
+
+    @Test
+    void testUpdateAuthority_Fail_UserNotFound(){
+        AuthorityUpdateDTO dto  = new AuthorityUpdateDTO(100L, "ROLE_ADMIN");
+
+        when(authorityRepository.findById(100L)).thenReturn(Optional.empty());
+
+        Exception ex = assertThrows(EntityNotFoundException.class, () -> {
+            authorityServiceImp.updateAuthority(dto);
+        });
+        assertEquals("Authority with ID 100 not found", ex.getMessage());
+    }
+    @Test
+    void testUpdateAuthority_Fail_UserAlreadyHasRoleWithDifferentId() {
+        AuthorityUpdateDTO dto = new AuthorityUpdateDTO(1L, "ROLE_ADMIN");
+
+        Authority existingAuthority = new Authority();
+        existingAuthority.setId(1L);
+        existingAuthority.setAuthority("ROLE_USER");
+
+        User user = new User();
+        user.setId(1L);
+        user.setUsername("John");
+        existingAuthority.setUser(user);
+
+        when(authorityRepository.findById(1L)).thenReturn(Optional.of(existingAuthority));
+        when(authorityRepository.existsByUserIdAndAuthorityAndIdNot(1L, "ROLE_USER", 1L)).thenReturn(true);
+
+        Exception ex = assertThrows(IllegalArgumentException.class, () -> {
+            authorityServiceImp.updateAuthority(dto);
+        });
+
+        assertEquals("User ID 1 already have role ROLE_ADMIN ", ex.getMessage());
+    }
+@Test
+        void testDeleteAuthoriy_Fail_AuthorityNotFound(){
+            when(authorityRepository.existsById(99L)).thenReturn(false);
+
+            Exception ex = assertThrows(EntityNotFoundException.class, () -> {
+                authorityServiceImp.deleteAuthority(99L);
+            });
+
+            assertEquals("Authority with ID 99 not found", ex.getMessage());
+        }
 }

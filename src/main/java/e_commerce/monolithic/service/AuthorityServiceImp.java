@@ -55,6 +55,7 @@ public class AuthorityServiceImp implements AuthorityService {
     @Transactional
     public AuthorityResponseDTO createAuthority(AuthorityCreateDTO authorityCreateDTO) {
         if (!authorityCreateDTO.getAuthority().startsWith("ROLE_")) {
+            logger.error("Create Authority Error: Role '{}' must start with 'ROLE_'", authorityCreateDTO.getAuthority());
             throw new IllegalArgumentException("Authority roles must start with 'ROLE_'");
         }
 
@@ -62,11 +63,16 @@ public class AuthorityServiceImp implements AuthorityService {
         String authorityStr = authorityCreateDTO.getAuthority();
 
         if (authorityRepository.existsByUserIdAndAuthority(userId, authorityStr)) {
+            logger.error("Create Authority Error: User with ID {} already exists with role {}", userId, authorityStr);
             throw new IllegalArgumentException("User with ID " + userId + " already have role " + authorityStr);
         }
 
         User user = userRepository.findById(authorityCreateDTO.getUserId())
-                .orElseThrow(() -> new EntityNotFoundException("User with ID" + authorityCreateDTO.getUserId() + "not found"));
+                .orElseThrow(() -> {
+                        logger.error("Create Authority Error: User with ID not {} not found ", userId);
+                        return new EntityNotFoundException("User with ID " + userId + " not found");
+                        });
+
 
         Authority authority = new Authority();
         authority.setAuthority(authorityCreateDTO.getAuthority());
@@ -83,13 +89,16 @@ public class AuthorityServiceImp implements AuthorityService {
     @Transactional
     public AuthorityResponseDTO updateAuthority(AuthorityUpdateDTO authorityUpdateDTO) {
         Authority authority = authorityRepository.findById(authorityUpdateDTO.getId())
-                .orElseThrow(() -> new EntityNotFoundException("Authority with ID" + authorityUpdateDTO.getId() + "not found"));
-
+                .orElseThrow(() -> {
+                    logger.error("Update Authority Error: Authority with ID {} not found ", authorityUpdateDTO.getId());
+                    return new EntityNotFoundException("Authority with ID " + authorityUpdateDTO.getId() + " not found");
+                });
         String newAuthority = authorityUpdateDTO.getAuthority();
         Long userId = authority.getUser().getId();
 
         boolean exists = authorityRepository.existsByUserIdAndAuthorityAndIdNot(userId, authority.getAuthority(), authority.getId());
         if (exists) {
+            logger.error("Update authority Error: User with ID {} already have role {}", userId, authority.getAuthority());
             throw new IllegalArgumentException("User ID " + userId + " already have role " + newAuthority + " ");
         }
 
@@ -106,7 +115,7 @@ public class AuthorityServiceImp implements AuthorityService {
     public void deleteAuthority(Long authorityId) {
         if (!authorityRepository.existsById(authorityId)) {
             logger.warn("Delete fail: No find authority with ID {}", authorityId);
-            throw new EntityNotFoundException("Authority with ID" + authorityId + "not found");
+            throw new EntityNotFoundException("Authority with ID " + authorityId + " not found");
         }
         authorityRepository.deleteById(authorityId);
         logger.info("Delete Authority with ID {}", authorityId);

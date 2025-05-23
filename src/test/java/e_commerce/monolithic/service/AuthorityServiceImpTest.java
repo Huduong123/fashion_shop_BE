@@ -205,7 +205,7 @@ class AuthorityServiceImpTest {
         existingAuthority.setUser(user);
 
         when(authorityRepository.findById(1L)).thenReturn(Optional.of(existingAuthority));
-        when(authorityRepository.existsByUserIdAndAuthorityAndIdNot(1L, "ROLE_USER", 1L)).thenReturn(true);
+        when(authorityRepository.existsByUserIdAndAuthorityAndIdNot(user.getId(), dto.getAuthority(), existingAuthority.getId())).thenReturn(true);
 
         Exception ex = assertThrows(IllegalArgumentException.class, () -> {
             authorityServiceImp.updateAuthority(dto);

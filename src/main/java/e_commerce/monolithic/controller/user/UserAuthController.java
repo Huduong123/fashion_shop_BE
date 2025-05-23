@@ -6,6 +6,7 @@ import e_commerce.monolithic.dto.auth.UserReponseDTO;
 import e_commerce.monolithic.entity.User;
 import e_commerce.monolithic.mapper.UserMapper;
 import e_commerce.monolithic.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,14 +24,14 @@ public class UserAuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<UserReponseDTO> registerUser(@RequestBody UserRegisterDTO userRegisterDTO) {
+    public ResponseEntity<UserReponseDTO> registerUser(@RequestBody @Valid UserRegisterDTO userRegisterDTO) {
         User user = userService.register(userRegisterDTO);
         UserReponseDTO reponseDTO = userMapper.converToDTO(user);
         return ResponseEntity.ok(reponseDTO);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> loginUser(@RequestBody UserLoginDTO userLoginDTO) {
+    public ResponseEntity<?> loginUser(@RequestBody @Valid UserLoginDTO userLoginDTO) {
         String token = userService.login(userLoginDTO);
         return ResponseEntity.ok().body("Bearer " + token);
     }

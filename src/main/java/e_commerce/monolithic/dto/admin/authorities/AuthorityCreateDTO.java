@@ -13,9 +13,9 @@ import lombok.NoArgsConstructor;
 
 public class AuthorityCreateDTO {
 
-    @NotNull
+    @NotNull(message = "Người dùng không được để trống")
     private Long userId;
 
-    @NotBlank
+    @NotBlank(message = "Quyền không được để trống")
     private String authority;
 }

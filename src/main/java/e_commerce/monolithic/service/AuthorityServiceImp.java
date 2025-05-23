@@ -74,9 +74,7 @@ public class AuthorityServiceImp implements AuthorityService {
                         });
 
 
-        Authority authority = new Authority();
-        authority.setAuthority(authorityCreateDTO.getAuthority());
-        authority.setUser(user);
+        Authority authority = AuthorityMapper.toCreateEntity(authorityCreateDTO, user);
 
         Authority savedAuthority = authorityRepository.save(authority);
 
@@ -96,13 +94,19 @@ public class AuthorityServiceImp implements AuthorityService {
         String newAuthority = authorityUpdateDTO.getAuthority();
         Long userId = authority.getUser().getId();
 
-        boolean exists = authorityRepository.existsByUserIdAndAuthorityAndIdNot(userId, authority.getAuthority(), authority.getId());
+        boolean exists = authorityRepository.existsByUserIdAndAuthorityAndIdNot(userId, newAuthority, authority.getId());
         if (exists) {
-            logger.error("Update authority Error: User with ID {} already have role {}", userId, authority.getAuthority());
+            logger.error("Update authority Error: User with ID {} already have role {}", userId, newAuthority);
             throw new IllegalArgumentException("User ID " + userId + " already have role " + newAuthority + " ");
         }
+        if (authority.getAuthority().equals(newAuthority)) {
+            logger.info("Authority ID {} haved update, but the authority value still remain the same: '{}'", authority.getId(), newAuthority);
+            return AuthorityMapper.toResAuthorityDTO(authority);
+        }
 
-        authority.setAuthority(newAuthority);
+        // Sử dụng AuthorityMapper để cập nhật Entity từ DTO
+        AuthorityMapper.toUpdateEntity(authorityUpdateDTO, authority);
+
         Authority updatedAuthority = authorityRepository.save(authority);
 
         logger.info("Authority ID {} đã được cập nhật thành '{}' cho User '{}'", updatedAuthority.getId(), updatedAuthority.getAuthority(), updatedAuthority.getUser().getUsername());

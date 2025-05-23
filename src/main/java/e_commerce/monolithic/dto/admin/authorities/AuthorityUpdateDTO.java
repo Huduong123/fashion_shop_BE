@@ -12,6 +12,6 @@ import lombok.NoArgsConstructor;
 public class AuthorityUpdateDTO {
     @NotNull
     private Long id;
-    @NotBlank
+    @NotBlank(message = "Quyền không được để trống")
     private String authority;
 }

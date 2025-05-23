@@ -5,6 +5,7 @@ import e_commerce.monolithic.dto.auth.AdminLoginDTO;
 import e_commerce.monolithic.entity.User;
 import e_commerce.monolithic.security.JwtUtil;
 import e_commerce.monolithic.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,7 +30,7 @@ public class AdminAuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> loginAdmin(@RequestBody AdminLoginDTO adminLoginDTO) {
+    public ResponseEntity<?> loginAdmin(@RequestBody @Valid AdminLoginDTO adminLoginDTO) {
 
         String token = userService.loginAdmin(adminLoginDTO);
         return ResponseEntity.ok().body("Bearer " + token);

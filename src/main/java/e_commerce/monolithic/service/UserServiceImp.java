@@ -2,10 +2,12 @@ package e_commerce.monolithic.service;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.Set;
 
 import e_commerce.monolithic.dto.auth.AdminLoginDTO;
 import e_commerce.monolithic.entity.Authority;
 import e_commerce.monolithic.exeption.NotFoundException;
+import e_commerce.monolithic.mapper.UserMapper;
 import e_commerce.monolithic.repository.AuthorityRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,12 +26,13 @@ public class UserServiceImp implements UserService {
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
     private final AuthorityRepository authorityRepository;
-
-    public UserServiceImp(UserRepository userRepository, JwtUtil jwtUtil, PasswordEncoder passwordEncoder, AuthorityRepository authorityRepository) {
+    private final UserMapper userMapper;
+    public UserServiceImp(UserRepository userRepository, JwtUtil jwtUtil, PasswordEncoder passwordEncoder, AuthorityRepository authorityRepository,  UserMapper userMapper) {
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder;
         this.authorityRepository = authorityRepository;
+        this.userMapper = userMapper;
     }
 
     @Override
@@ -87,27 +90,24 @@ public class UserServiceImp implements UserService {
         // Thêm xác thực dữ liệu
         validateUserRegisterDTO(userRegisterDTO);
 
-        User user = new User();
-        user.setUsername(userRegisterDTO.getUsername());
-        user.setPassword(passwordEncoder.encode(userRegisterDTO.getPassword()));
-        user.setEmail(userRegisterDTO.getEmail());
-        user.setFullname(userRegisterDTO.getFullname());
-        user.setPhone(userRegisterDTO.getPhone());
-        user.setEnabled(true);
-        user.setCreatedAt(LocalDateTime.now());
-        user.setUpdatedAt(LocalDateTime.now());
-
-        User savedUser =  userRepository.save(user);
-
-        // Tạo quyền mặc đinh cho ROLE_USER
+        // Tạo quyền mặc định ROLE_USER
         Authority authority = new Authority();
         authority.setAuthority("ROLE_USER");
-        authority.setUser( savedUser );
         authority.setCreatedAt(LocalDateTime.now());
         authority.setUpdatedAt(LocalDateTime.now());
 
+        User user = userMapper.convertToEntity(
+                userRegisterDTO,
+                Set.of(authority),
+                passwordEncoder.encode(userRegisterDTO.getPassword())
+        );
+
+        //Thiết lập quan hệ 2 chiều giữa User và Authority
+        authority.setUser(user);
+
+        //Lưu user và authority vào DB
+        User savedUser = userRepository.save(user);
         authorityRepository.save(authority);
-        savedUser.getAuthorities().add(authority);
 
         return savedUser;
     }

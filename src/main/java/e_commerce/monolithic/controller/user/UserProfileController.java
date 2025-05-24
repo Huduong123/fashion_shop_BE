@@ -1,5 +1,7 @@
 package e_commerce.monolithic.controller.user;
 
+import e_commerce.monolithic.dto.common.ResponseMessageDTO;
+import e_commerce.monolithic.dto.user.UserChangePasswordDTO;
 import e_commerce.monolithic.dto.user.UserProfileDTO;
 import e_commerce.monolithic.dto.user.UserUpdateProfileDTO;
 import e_commerce.monolithic.service.user.UserService;
@@ -34,5 +36,16 @@ public class UserProfileController {
         String username = principal.getName();
         UserProfileDTO updatedUserProfile= userService.updateUserProfile(username, updateProfileDTO);
         return ResponseEntity.ok(updatedUserProfile);
+    }
+
+    @PutMapping("/change-password")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ResponseMessageDTO> changePassword(
+            @RequestBody @Valid UserChangePasswordDTO  userChangePasswordDTO,
+            Principal principal
+            ) {
+        String username = principal.getName();
+        ResponseMessageDTO responseMessageDTO = userService.changePassword(username, userChangePasswordDTO);
+        return ResponseEntity.ok(responseMessageDTO);
     }
 }

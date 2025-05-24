@@ -9,6 +9,9 @@ import e_commerce.monolithic.entity.Authority;
 import e_commerce.monolithic.exeption.NotFoundException;
 import e_commerce.monolithic.mapper.UserMapper;
 import e_commerce.monolithic.repository.AuthorityRepository;
+import e_commerce.monolithic.service.admin.AuthorityServiceImp;
+import e_commerce.monolithic.service.common.UserValidationService;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -18,7 +21,8 @@ import e_commerce.monolithic.entity.User;
 import e_commerce.monolithic.repository.UserRepository;
 import e_commerce.monolithic.security.JwtUtil;
 import jakarta.transaction.Transactional;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
 public class UserAuthServiceImp implements UserAuthService {
 
@@ -27,26 +31,30 @@ public class UserAuthServiceImp implements UserAuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthorityRepository authorityRepository;
     private final UserMapper userMapper;
-    public UserAuthServiceImp(UserRepository userRepository, JwtUtil jwtUtil, PasswordEncoder passwordEncoder, AuthorityRepository authorityRepository, UserMapper userMapper) {
+    private final UserValidationService  userValidationService;
+    private static final Logger logger = LoggerFactory.getLogger(UserAuthServiceImp.class);
+
+    public UserAuthServiceImp(UserRepository userRepository, JwtUtil jwtUtil, PasswordEncoder passwordEncoder, AuthorityRepository authorityRepository, UserMapper userMapper,  UserValidationService userValidationService) {
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder;
         this.authorityRepository = authorityRepository;
         this.userMapper = userMapper;
+        this.userValidationService = userValidationService;
     }
 
     @Override
     @Transactional
     public String login(UserLoginDTO userLoginDTO) {
-        User user = userRepository.findByUsername(userLoginDTO.getUsername())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+        User user = userValidationService.findByUsername(userLoginDTO.getUsername())
+                .orElseThrow(() -> {
+                    logger.error("User not found with username: " + userLoginDTO.getUsername());
+                    return new EntityNotFoundException("User not found with username: " + userLoginDTO.getUsername());
+                });
 
-        if (!passwordEncoder.matches(userLoginDTO.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("Invalid password");
-        }
-        if (!user.isEnabled()) {
-            throw new IllegalArgumentException("Account is disabled");
-        }
+
+        validatePasswordInvalid(userLoginDTO.getPassword(),user);
+        validateEnabled(user);
 
         return jwtUtil.generateToken(user.getUsername());
     }
@@ -54,37 +62,50 @@ public class UserAuthServiceImp implements UserAuthService {
     @Override
     @Transactional
     public String loginAdmin(AdminLoginDTO adminLoginDTO) {
-        User user = userRepository.findByUsername(adminLoginDTO.getUsername())
+        User user = userValidationService.findByUsername(adminLoginDTO.getUsername())
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
-        if(!passwordEncoder.matches(adminLoginDTO.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("Invalid password");
-        }
-        // Kiểm tra user có ROLE_ADMIN không
-        boolean isAdmin = user.getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
+        //validate
+        validatePasswordInvalid(adminLoginDTO.getPassword(),user);
+        checkIsAdmin(user);
+        validateEnabled(user);
 
-        if (!isAdmin) {
-            throw new IllegalArgumentException("Access denied. You a not an admin");
+        return jwtUtil.generateToken(user.getUsername());
+    }
+
+    private void validateEnabled(User user) {
+        if (user == null) {
+            throw new IllegalArgumentException("User cannot be null");
         }
         if (!user.isEnabled()) {
             throw new IllegalArgumentException("Account is disabled");
         }
-        return jwtUtil.generateToken(user.getUsername());
     }
 
+    private void checkIsAdmin(User user) {
+        boolean isAdmin = user.getAuthorities().stream()
+                .anyMatch(auth -> "ROLE_ADMIN".equals(auth.getAuthority()));
 
+        if (!isAdmin) {
+            throw new IllegalArgumentException("Access denied. You are not an admin");
+        }
+    }
+    private void validatePasswordInvalid(String rawPassword, User user) {
+        if (!userValidationService.isPasswordMatch(rawPassword, user.getPassword())) { // Sử dụng service chung
+            throw new IllegalArgumentException("Invalid password");
+        }
+    }
 
     @Override
     @Transactional
     public User register(UserRegisterDTO userRegisterDTO) {
-        if (existsByUsername(userRegisterDTO.getUsername())) {
+        if (userValidationService.existsByUsername(userRegisterDTO.getUsername())) {
             throw new IllegalArgumentException("Username already exists");
         }
-        if (existsByEmail(userRegisterDTO.getEmail())) {
+        if (userValidationService.existsByEmail(userRegisterDTO.getEmail())) {
             throw new IllegalArgumentException("Email already exists");
         }
-        if  (existsByPhone(userRegisterDTO.getPhone())) {
+        if  (userValidationService.existsByPhone(userRegisterDTO.getPhone())) {
             throw new IllegalArgumentException("Phone already exists");
         }
         // Thêm xác thực dữ liệu
@@ -120,36 +141,7 @@ public class UserAuthServiceImp implements UserAuthService {
             throw new IllegalArgumentException("Password must be at least 8 characters");
         }
     }
-    @Override
-    public boolean existsByUsername(String username) {
-        return userRepository.existsByUsername(username);
-    }
 
-    @Override
-    public boolean existsByEmail(String email) {
-        return userRepository.existsByEmail(email);
-    }
-
-    @Override
-    public boolean existsByPhone(String phone) {
-        return userRepository.existsByPhone(phone);
-    }
-
-    @Override
-    public Optional<User> findByUsername(String username) {
-        Optional<User> userOpt = userRepository.findByUsername(username);
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-            // Force load authorities
-            user.getAuthorities().size();
-        }
-        return userOpt;
-    }
-
-    @Override
-    public boolean isPasswordMatch(String rawPassword, String encodedPassword) {
-        return passwordEncoder.matches(rawPassword, encodedPassword);
-    }
 
 
 }

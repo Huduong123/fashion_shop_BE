@@ -3,6 +3,7 @@ package e_commerce.monolithic.security;
 import java.io.IOException;
 import java.util.stream.Collectors;
 
+import e_commerce.monolithic.service.common.UserValidationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,11 +22,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserAuthService userAuthService;
+    private final UserValidationService userValidationService;
 
     @Autowired
-    public JwtAuthenticationFilter(JwtUtil jwtUtil, UserAuthService userAuthService) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, UserAuthService userAuthService, UserValidationService userValidationService) {
         this.jwtUtil = jwtUtil;
         this.userAuthService = userAuthService;
+        this.userValidationService = userValidationService;
     }
 
     // Bỏ hoàn toàn phần này
@@ -62,7 +65,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            var userOpt = userAuthService.findByUsername(username);
+            var userOpt = userValidationService.findByUsername(username);
             if (userOpt.isPresent()) {
                 var user = userOpt.get();
                 if (jwtUtil.validateToken(jwt)) {

@@ -1,7 +1,6 @@
 package e_commerce.monolithic.security;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,7 +10,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import e_commerce.monolithic.service.UserService;
+import e_commerce.monolithic.service.auth.UserAuthService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,55 +20,64 @@ import jakarta.servlet.http.HttpServletResponse;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
-    private final UserService userService;
+    private final UserAuthService userAuthService;
 
     @Autowired
-    public JwtAuthenticationFilter(JwtUtil jwtUtil, UserService userService) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, UserAuthService userAuthService) {
         this.jwtUtil = jwtUtil;
-        this.userService = userService;
+        this.userAuthService = userAuthService;
     }
 
-    private static final List<String> EXCLUDED_PATHS = List.of(
-            "/api/admin/login",
-            "/api/user/login",
-            "/api/user/register");
-
-    @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-        String path = request.getRequestURI();
-        return EXCLUDED_PATHS.contains(path);
-    }
+    // Bỏ hoàn toàn phần này
+    // private static final List<String> EXCLUDED_PATHS = List.of(
+    //         "/api/admin/login",
+    //         "/api/user/login",
+    //         "/api/user/register");
+    //
+    // @Override
+    // protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+    //     String path = request.getRequestURI();
+    //     return EXCLUDED_PATHS.contains(path);
+    // }
+    // End bỏ hoàn toàn
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain) throws ServletException, IOException {
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
 
         String authHeader = request.getHeader("Authorization");
+        String username = null;
+        String jwt = null;
+
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String jwt = authHeader.substring(7);
-            if (jwtUtil.validateToken(jwt)) {
-                String username = jwtUtil.extractUsername(jwt);
-                var userOpt = userService.findByUsername(username);
-                if (userOpt.isPresent()) {
-                    var user = userOpt.get();
-                    // Eagerly load authorities
+            jwt = authHeader.substring(7);
+            try {
+                username = jwtUtil.extractUsername(jwt);
+            } catch (Exception e) {
+                // Log the exception if needed, but don't block the filter chain.
+                // The JwtAuthenticationEntryPoint will handle unauthorized access later.
+                // System.err.println("JWT token extraction failed: " + e.getMessage());
+            }
+        }
+
+        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            var userOpt = userAuthService.findByUsername(username);
+            if (userOpt.isPresent()) {
+                var user = userOpt.get();
+                if (jwtUtil.validateToken(jwt)) {
+                    // Spring Security expects GrantedAuthority objects
                     var authorities = user.getAuthorities().stream()
-                            .map(auth -> auth.getAuthority())
+                            .map(auth -> new org.springframework.security.core.authority.SimpleGrantedAuthority(auth.getAuthority()))
                             .collect(Collectors.toList());
 
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            user, null, authorities.stream()
-                                    .map(auth -> new org.springframework.security.core.authority.SimpleGrantedAuthority(
-                                            auth))
-                                    .collect(Collectors.toList()));
+                            user, null, authorities);
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             }
         }
-
         filterChain.doFilter(request, response);
     }
-
 }

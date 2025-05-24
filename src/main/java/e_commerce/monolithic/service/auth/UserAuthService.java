@@ -1,4 +1,4 @@
-package e_commerce.monolithic.service;
+package e_commerce.monolithic.service.auth;
 
 import e_commerce.monolithic.dto.auth.AdminLoginDTO;
 import e_commerce.monolithic.dto.auth.UserLoginDTO;
@@ -7,7 +7,7 @@ import e_commerce.monolithic.entity.User;
 
 import java.util.Optional;
 
-public interface UserService {
+public interface UserAuthService {
     String login(UserLoginDTO userLoginDTO);
     String loginAdmin(AdminLoginDTO adminLoginDTO);
     User register(UserRegisterDTO userRegisterDTO);

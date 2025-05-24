@@ -3,6 +3,8 @@ package e_commerce.monolithic.mapper;
 
 import e_commerce.monolithic.dto.auth.UserRegisterDTO;
 import e_commerce.monolithic.dto.auth.UserReponseDTO;
+import e_commerce.monolithic.dto.user.UserProfileDTO;
+import e_commerce.monolithic.dto.user.UserUpdateProfileDTO;
 import e_commerce.monolithic.entity.Authority;
 import e_commerce.monolithic.entity.User;
 import org.springframework.stereotype.Component;
@@ -45,4 +47,31 @@ public class UserMapper {
 
     }
 
+
+    public UserProfileDTO convertToUserProfileDTO (User user) {
+        return new UserProfileDTO(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getFullname(),
+                user.getPhone(),
+                user.getAddress()
+        );
+    }
+
+    public void updateUserFromDTO (User user, UserUpdateProfileDTO userUpdateProfileDTO) {
+        if (userUpdateProfileDTO.getEmail() != null) {
+            user.setEmail(userUpdateProfileDTO.getEmail());
+        }
+        if (userUpdateProfileDTO.getFullname() != null) {
+            user.setFullname(userUpdateProfileDTO.getFullname());
+        }
+        if (userUpdateProfileDTO.getPhone() != null) {
+            user.setPhone(userUpdateProfileDTO.getPhone());
+        }
+        if (userUpdateProfileDTO.getAddress() != null) {
+            user.setAddress(userUpdateProfileDTO.getAddress());
+        }
+
+    }
 }

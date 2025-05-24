@@ -15,5 +15,5 @@ public class UserProfileDTO {
     private String fullname;
     private String phone;
     private String address;
-    private boolean enabled;
+
 }

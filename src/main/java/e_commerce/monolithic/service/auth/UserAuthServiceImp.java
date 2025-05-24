@@ -1,4 +1,4 @@
-package e_commerce.monolithic.service;
+package e_commerce.monolithic.service.auth;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -20,14 +20,14 @@ import e_commerce.monolithic.security.JwtUtil;
 import jakarta.transaction.Transactional;
 
 @Service
-public class UserServiceImp implements UserService {
+public class UserAuthServiceImp implements UserAuthService {
 
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
     private final AuthorityRepository authorityRepository;
     private final UserMapper userMapper;
-    public UserServiceImp(UserRepository userRepository, JwtUtil jwtUtil, PasswordEncoder passwordEncoder, AuthorityRepository authorityRepository,  UserMapper userMapper) {
+    public UserAuthServiceImp(UserRepository userRepository, JwtUtil jwtUtil, PasswordEncoder passwordEncoder, AuthorityRepository authorityRepository, UserMapper userMapper) {
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder;

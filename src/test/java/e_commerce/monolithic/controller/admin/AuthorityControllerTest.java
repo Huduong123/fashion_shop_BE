@@ -1,7 +1,7 @@
 package e_commerce.monolithic.controller.admin;
 
 import e_commerce.monolithic.dto.admin.authorities.*;
-import e_commerce.monolithic.service.AuthorityService;
+import e_commerce.monolithic.service.admin.AuthorityService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

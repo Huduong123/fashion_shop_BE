@@ -1,7 +1,6 @@
-package e_commerce.monolithic.service;
+package e_commerce.monolithic.service.admin;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import e_commerce.monolithic.dto.admin.authorities.AuthorityCreateDTO;
@@ -10,7 +9,6 @@ import e_commerce.monolithic.dto.admin.authorities.AuthorityUpdateDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import e_commerce.monolithic.dto.admin.authorities.AuthorityDTO;
 import e_commerce.monolithic.entity.Authority;
 import e_commerce.monolithic.entity.User;
 import e_commerce.monolithic.mapper.AuthorityMapper;

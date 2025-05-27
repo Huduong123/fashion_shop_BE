@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserLoginDTO {
+
     @NotBlank(message = "Username không được để trống")
     private String username;
     @NotBlank(message = "Password không được để trống")

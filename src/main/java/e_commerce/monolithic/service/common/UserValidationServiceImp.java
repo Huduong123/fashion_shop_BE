@@ -43,6 +43,16 @@ public class UserValidationServiceImp implements UserValidationService {
         return userOpt;
     }
 
+    @Override
+    public Optional<User> findById(Long id) {
+        Optional<User> userOpt = userRepository.findById(id);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            user.getAuthorities().size();
+        }
+        return userOpt;
+    }
+
 
     @Override
     public boolean isPasswordMatch(String rawPassword, String encodedPassword) {

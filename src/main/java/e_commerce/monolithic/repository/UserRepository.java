@@ -3,6 +3,7 @@ package e_commerce.monolithic.repository;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -10,7 +11,7 @@ import org.springframework.stereotype.Repository;
 import e_commerce.monolithic.entity.User;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
     // Tìm User theo username và eager load authorities
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.authorities WHERE u.username = :username")
     Optional<User> findByUsername(@Param("username") String username);

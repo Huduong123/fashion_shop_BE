@@ -1,7 +1,9 @@
 package e_commerce.monolithic.mapper;
 
 
-import e_commerce.monolithic.dto.admin.UserAdminDTO;
+import e_commerce.monolithic.dto.admin.AccountAdminDTO;
+import e_commerce.monolithic.dto.admin.AccountCreateAdminDTO;
+import e_commerce.monolithic.dto.admin.AccountUpdateAdminDTO;
 import e_commerce.monolithic.dto.auth.UserRegisterDTO;
 import e_commerce.monolithic.dto.auth.UserReponseDTO;
 import e_commerce.monolithic.dto.user.UserProfileDTO;
@@ -77,8 +79,9 @@ public class UserMapper {
 
     }
 
-    public UserAdminDTO convertToAdminDTO (User user) {
-        return new UserAdminDTO(
+    // ACcount
+    public AccountAdminDTO convertToAdminDTO (User user) {
+        return new AccountAdminDTO(
                 user.getId(),
                 user.getUsername(),
                 user.getEmail(),
@@ -89,5 +92,24 @@ public class UserMapper {
                 user.getCreatedAt(),
                 user.getUpdatedAt()
         );
+    }
+
+    public void updateAccountFromDTO (User user, AccountUpdateAdminDTO  accountUpdateAdminDTO) {
+        if (accountUpdateAdminDTO.getEmail() != null) {
+            user.setEmail(accountUpdateAdminDTO.getEmail());
+        }
+        if (accountUpdateAdminDTO.getFullname() != null) {
+            user.setFullname(accountUpdateAdminDTO.getFullname());
+        }
+        if (accountUpdateAdminDTO.getPhone() != null) {
+            user.setPhone(accountUpdateAdminDTO.getPhone());
+        }
+        if (accountUpdateAdminDTO.getGender() != null) {
+            user.setGender(accountUpdateAdminDTO.getGender());
+        }
+        if (accountUpdateAdminDTO.getBirthday() != null) {
+            user.setBirthDate(accountUpdateAdminDTO.getBirthday());
+        }
+        user.setEnabled(accountUpdateAdminDTO.isEnabled());
     }
 }

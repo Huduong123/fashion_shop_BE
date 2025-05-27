@@ -1,6 +1,7 @@
 package e_commerce.monolithic.mapper;
 
 
+import e_commerce.monolithic.dto.admin.UserAdminDTO;
 import e_commerce.monolithic.dto.auth.UserRegisterDTO;
 import e_commerce.monolithic.dto.auth.UserReponseDTO;
 import e_commerce.monolithic.dto.user.UserProfileDTO;
@@ -27,6 +28,8 @@ public class UserMapper {
                 user.getEmail(),
                 user.getFullname(),
                 user.getPhone(),
+                user.getGender(),
+                user.getBirthDate(),
                 user.isEnabled(),
                 user.getCreatedAt(),
                 roles
@@ -55,7 +58,8 @@ public class UserMapper {
                 user.getEmail(),
                 user.getFullname(),
                 user.getPhone(),
-                user.getAddress()
+                user.getGender(),
+                user.getBirthDate()
         );
     }
 
@@ -69,9 +73,21 @@ public class UserMapper {
         if (userUpdateProfileDTO.getPhone() != null) {
             user.setPhone(userUpdateProfileDTO.getPhone());
         }
-        if (userUpdateProfileDTO.getAddress() != null) {
-            user.setAddress(userUpdateProfileDTO.getAddress());
-        }
 
+
+    }
+
+    public UserAdminDTO convertToAdminDTO (User user) {
+        return new UserAdminDTO(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getFullname(),
+                user.getPhone(),
+                user.getGender(),
+                user.getBirthDate(),
+                user.getCreatedAt(),
+                user.getUpdatedAt()
+        );
     }
 }

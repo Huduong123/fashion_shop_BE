@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,13 +26,13 @@ public class User implements UserDetails {
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "username", unique = true)
+    @Column(name = "username", unique = true, nullable = false)
     private String username;
 
-    @Column(name = "password")
+    @Column(name = "password",  nullable = false)
     private String password;
 
-    @Column(name = "email", unique = true)
+    @Column(name = "email", unique = true, nullable = false)
     private String email;
 
     @Column(name = "full_name")
@@ -40,13 +41,16 @@ public class User implements UserDetails {
     @Column(name = "phone", unique = true)
     private  String phone;
 
-    @Column(name = "address")
-    private String address;
+    @Column(name = "gender")
+    private String gender;
+
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
 
     @Column(name = "enabled")
     private boolean enabled;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", updatable = false)
     protected LocalDateTime createdAt;
 
     @Column(name = "updated_at")

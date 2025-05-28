@@ -120,7 +120,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 "password",
                 "email",
                 "fullname",
-                "phone"
+                "phone",
+                "gender",
+                "birth_day"
         );
 
         // Bước 3: Tạo danh sách các thông báo lỗi cuối cùng theo thứ tự đã định nghĩa.

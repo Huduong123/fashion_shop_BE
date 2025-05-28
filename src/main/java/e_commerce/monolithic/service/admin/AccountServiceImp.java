@@ -3,6 +3,7 @@ package e_commerce.monolithic.service.admin;
 import e_commerce.monolithic.dto.admin.AccountAdminDTO;
 import e_commerce.monolithic.dto.admin.AccountCreateAdminDTO;
 import e_commerce.monolithic.dto.admin.AccountUpdateAdminDTO;
+import e_commerce.monolithic.entity.Authority;
 import e_commerce.monolithic.entity.User;
 import e_commerce.monolithic.exeption.NotFoundException;
 import e_commerce.monolithic.mapper.UserMapper;
@@ -50,6 +51,7 @@ public class AccountServiceImp implements AccountService{
     @Transactional
     public AccountAdminDTO createAccount(AccountCreateAdminDTO accountCreateAdminDTO) {
         validateNewAccountCreate(accountCreateAdminDTO);
+
         User newUser = new User();
         newUser.setUsername(accountCreateAdminDTO.getUsername());
         newUser.setPassword(passwordEncoder.encode(accountCreateAdminDTO.getPassword()));
@@ -59,6 +61,12 @@ public class AccountServiceImp implements AccountService{
         newUser.setGender(accountCreateAdminDTO.getGender());
         newUser.setBirthDate(accountCreateAdminDTO.getBirthday());
         newUser.setEnabled(accountCreateAdminDTO.isEnabled());
+
+        Authority authority = new Authority();
+        authority.setAuthority("ROLE_USER");
+        authority.setUser(newUser);
+        
+        newUser.getAuthorities().add(authority);
 
         User savedUser = userRepository.save(newUser);
         logger.info("Account created successfully with ID: {} for Username: {}", savedUser.getId(), savedUser.getUsername());
@@ -79,7 +87,14 @@ public class AccountServiceImp implements AccountService{
             logger.warn("Phone {} already exists!",  dto.getPhone());
             throw new IllegalArgumentException("Phone " + dto.getPhone() + " already exists");
         }
-
+        if (!dto.getEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+            logger.warn("Email {} is not valid!",  dto.getEmail());
+            throw new IllegalArgumentException("Invalid email format");
+        }
+        if (dto.getPassword().length() < 8) {
+            logger.warn("Password length must be at least 8 characters");
+            throw new IllegalArgumentException("Password length must be at least 8 characters");
+        }
     }
 
     @Override

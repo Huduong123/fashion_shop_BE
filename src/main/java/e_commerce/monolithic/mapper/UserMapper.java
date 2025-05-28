@@ -75,7 +75,12 @@ public class UserMapper {
         if (userUpdateProfileDTO.getPhone() != null) {
             user.setPhone(userUpdateProfileDTO.getPhone());
         }
-
+        if (userUpdateProfileDTO.getGender() != null) {
+            user.setGender(userUpdateProfileDTO.getGender());
+        }
+        if (userUpdateProfileDTO.getBirthday() != null) {
+            user.setBirthDate(userUpdateProfileDTO.getBirthday());
+        }
 
     }
 

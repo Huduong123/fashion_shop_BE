@@ -58,6 +58,9 @@ public class User implements UserDetails {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Authority> authorities = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<UserAddress>  userAddresses = new ArrayList<>();
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

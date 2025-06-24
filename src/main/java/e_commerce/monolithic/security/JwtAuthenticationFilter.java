@@ -31,19 +31,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.userValidationService = userValidationService;
     }
 
-    // Bỏ hoàn toàn phần này
-    // private static final List<String> EXCLUDED_PATHS = List.of(
-    //         "/api/admin/login",
-    //         "/api/user/login",
-    //         "/api/user/register");
-    //
-    // @Override
-    // protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-    //     String path = request.getRequestURI();
-    //     return EXCLUDED_PATHS.contains(path);
-    // }
-    // End bỏ hoàn toàn
-
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,

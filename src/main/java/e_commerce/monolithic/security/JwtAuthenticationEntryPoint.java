@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component; // <-- Thêm import này
 
 import java.io.IOException;
 
-@Component // <-- Thêm annotation này
+@Component
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     private final ObjectMapper objectMapper; // Đặt thành final để đảm bảo nó được inject qua constructor

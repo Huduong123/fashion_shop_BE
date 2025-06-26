@@ -1,10 +1,7 @@
 package e_commerce.monolithic.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDate;
@@ -14,61 +11,45 @@ import java.util.List;
 
 @Entity
 @Table(name = "users")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User implements UserDetails {
+@ToString(exclude = {"authorities", "userAddresses"})
+public class User extends BaseEntity implements UserDetails {
 
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private Long id;
-
-    @Column(name = "username", unique = true, nullable = false)
+    @Column(name = "username", unique = true, nullable = false, length = 50)
     private String username;
 
     @Column(name = "password",  nullable = false)
     private String password;
 
-    @Column(name = "email", unique = true, nullable = false)
+    @Column(name = "email", unique = true, nullable = false, length = 100)
     private String email;
 
-    @Column(name = "full_name")
+    @Column(name = "full_name", length = 100)
     private String fullname;
 
-    @Column(name = "phone", unique = true)
+    @Column(name = "phone", unique = true, length = 20)
     private  String phone;
 
-    @Column(name = "gender")
+    @Column(name = "gender" , length = 10)
     private String gender;
 
     @Column(name = "birth_date")
     private LocalDate birthDate;
 
     @Column(name = "enabled")
-    private boolean enabled;
+    private boolean enabled = true;
 
-    @Column(name = "created_at", updatable = false)
-    protected LocalDateTime createdAt;
-
-    @Column(name = "updated_at")
-    protected LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Authority> authorities = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserAddress>  userAddresses = new ArrayList<>();
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-    }
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
+
 
 
 }

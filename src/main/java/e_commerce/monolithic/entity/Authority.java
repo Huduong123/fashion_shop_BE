@@ -8,16 +8,13 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "authorities")
-@Data
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Authority implements GrantedAuthority {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private Long id;
+@Builder
+@ToString(exclude = "user")
+public class Authority extends BaseEntity implements GrantedAuthority {
 
     @Column(name = "authority")
     private String authority;
@@ -26,20 +23,6 @@ public class Authority implements GrantedAuthority {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "created_at")
-    protected LocalDateTime createdAt;
-
-    @Column(name = "updated_at")
-    protected LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-    }
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
     @Override
     public String getAuthority() {
         return authority;

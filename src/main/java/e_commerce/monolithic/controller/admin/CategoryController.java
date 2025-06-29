@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/admin/categories")
+@RequestMapping("/api/admin/categories")
 public class CategoryController {
 
     private final CategoryService categoryService;
@@ -44,8 +44,8 @@ public class CategoryController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CategoryResponseDTO> updateCategory(@Valid @PathVariable Long id,
-                                                              @RequestBody CategoryUpdateDTO updateDTO) {
+    public ResponseEntity<CategoryResponseDTO> updateCategory( @PathVariable Long id,
+                                                              @Valid @RequestBody CategoryUpdateDTO updateDTO) {
         CategoryResponseDTO categoryResponseDTO = categoryService.updateCategory(id, updateDTO);
         return  ResponseEntity.ok(categoryResponseDTO);
     }

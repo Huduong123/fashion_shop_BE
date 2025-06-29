@@ -8,10 +8,13 @@ import e_commerce.monolithic.entity.Category;
 import e_commerce.monolithic.exeption.NotFoundException;
 import e_commerce.monolithic.mapper.CategoryMapper;
 import e_commerce.monolithic.repository.CategoryRepository;
+import e_commerce.monolithic.specification.CategorySpecification;
 import jakarta.transaction.Transactional;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,16 +23,20 @@ public class CategoryServiceImp implements CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
+    private final CategorySpecification categorySpecification;
 
-    public CategoryServiceImp(CategoryRepository categoryRepository, CategoryMapper categoryMapper) {
+    public CategoryServiceImp(CategoryRepository categoryRepository, CategoryMapper categoryMapper, CategorySpecification categorySpecification) {
         this.categoryRepository = categoryRepository;
         this.categoryMapper = categoryMapper;
+        this.categorySpecification = categorySpecification;
     }
 
-
     @Override
-    public List<CategoryResponseDTO> findAll() {
-        return categoryRepository.findAll()
+    public List<CategoryResponseDTO> findAll(String name, LocalDate createdAt, LocalDate updatedAt) {
+
+        Specification<Category> spec = categorySpecification.findByCriteria(name, createdAt, updatedAt);
+
+        return categoryRepository.findAll(spec)
                 .stream()
                 .map(categoryMapper::convertToDTO)
                 .collect(Collectors.toList());

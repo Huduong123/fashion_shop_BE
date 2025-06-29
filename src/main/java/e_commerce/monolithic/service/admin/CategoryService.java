@@ -5,11 +5,12 @@ import e_commerce.monolithic.dto.admin.category.CategoryResponseDTO;
 import e_commerce.monolithic.dto.admin.category.CategoryUpdateDTO;
 import e_commerce.monolithic.dto.common.ResponseMessageDTO;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface CategoryService {
 
-    List<CategoryResponseDTO> findAll();
+    List<CategoryResponseDTO> findAll(String name, LocalDate createdAt, LocalDate updatedAt);
 
     CategoryResponseDTO findById(Long categoryId);
 

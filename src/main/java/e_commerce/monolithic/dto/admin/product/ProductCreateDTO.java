@@ -23,15 +23,15 @@ public class ProductCreateDTO {
     @Pattern(regexp = ".*[a-zA-Z]+.*", message = "Mô tả phải chứa ít nhất một ký tự chữ")
     private String description;
 
-    @NotNull(message = "Giá tiền không được để trống")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Giá tiền phải lớn hơn 0")
-    private BigDecimal price;
-
-    @NotNull(message = "Số lượng không được để trống")
-    @Min(value = 0, message = "Số lượng không thể âm")
-    private Integer quantity;
-
-    private String imageUrl;
+//    @NotNull(message = "Giá tiền không được để trống")
+//    @DecimalMin(value = "0.0", inclusive = false, message = "Giá tiền phải lớn hơn 0")
+//    private BigDecimal price;
+//
+//    @NotNull(message = "Số lượng không được để trống")
+//    @Min(value = 0, message = "Số lượng không thể âm")
+//    private Integer quantity;
+//
+//    private String imageUrl;
 
     @NotNull(message = "Trạng thái hoạt động không được để trống")
     private Boolean enabled;

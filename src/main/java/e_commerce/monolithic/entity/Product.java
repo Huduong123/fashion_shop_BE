@@ -21,14 +21,9 @@ public class Product  extends  BaseEntity{
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "price", nullable = false, precision = 10, scale = 2)
-    private BigDecimal price;
 
-    @Column(name = "quantity", nullable = false)
-    private int quantity;
 
-    @Column(name = "image_url")
-    private String imageUrl;
+
 
     @Column(name = "enabled", nullable = false)
     private boolean enabled;

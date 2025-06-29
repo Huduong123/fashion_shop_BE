@@ -19,9 +19,6 @@ public class ProductMapper {
                 product.getId(),
                 product.getName(),
                 product.getDescription(),
-                product.getPrice(),
-                product.getQuantity(),
-                product.getImageUrl(),
                 product.isEnabled(),
                 categoryId,
                 product.getCreatedAt(),
@@ -37,9 +34,7 @@ public class ProductMapper {
         return Product.builder()
                 .name(productCreateDTO.getName())
                 .description(productCreateDTO.getDescription())
-                .price(productCreateDTO.getPrice())
-                .quantity(productCreateDTO.getQuantity())
-                .imageUrl(productCreateDTO.getImageUrl())
+
                 .enabled(productCreateDTO.getEnabled())
                 .category(category)
                 .build();
@@ -52,9 +47,7 @@ public class ProductMapper {
 
         existingProduct.setName(productUpdateDTO.getName());
         existingProduct.setDescription(productUpdateDTO.getDescription());
-        existingProduct.setPrice(productUpdateDTO.getPrice());
-        existingProduct.setQuantity(productUpdateDTO.getQuantity());
-        existingProduct.setImageUrl(productUpdateDTO.getImageUrl());
+
         existingProduct.setEnabled(productUpdateDTO.getEnabled());
         existingProduct.setCategory(category);
     }

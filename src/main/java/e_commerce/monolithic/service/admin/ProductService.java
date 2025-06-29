@@ -7,11 +7,16 @@ import e_commerce.monolithic.dto.common.ResponseMessageDTO;
 import e_commerce.monolithic.entity.Category;
 import e_commerce.monolithic.entity.Product;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 public interface ProductService {
 
-     List<ProductResponseDTO> findAll();
+     List<ProductResponseDTO> findAll(String name, BigDecimal minPrice, BigDecimal maxPrice,
+                                      Integer minQuantity, Integer maxQuantity,
+                                      Boolean enabled, Long categoryId,
+                                      LocalDate createdAt, LocalDate updatedAt);
 
      ProductResponseDTO findById(Long productId);
 

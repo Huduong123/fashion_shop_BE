@@ -10,10 +10,14 @@ import e_commerce.monolithic.exeption.NotFoundException;
 import e_commerce.monolithic.mapper.ProductMapper;
 import e_commerce.monolithic.repository.CategoryRepository;
 import e_commerce.monolithic.repository.ProductRepository;
+import e_commerce.monolithic.specification.ProductSpecification;
 import jakarta.transaction.Transactional;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,15 +27,21 @@ public class ProductServiceImp implements  ProductService{
     private final ProductRepository productRepository;
     private final ProductMapper productMapper;
     private final CategoryRepository categoryRepository;
-    public ProductServiceImp(ProductRepository productRepository, ProductMapper productMapper, CategoryRepository categoryRepository) {
+    private final ProductSpecification productSpecification;
+    public ProductServiceImp(ProductRepository productRepository, ProductMapper productMapper, CategoryRepository categoryRepository, ProductSpecification productSpecification) {
         this.productRepository = productRepository;
         this.productMapper = productMapper;
         this.categoryRepository = categoryRepository;
+        this.productSpecification = productSpecification;
     }
 
     @Override
-    public List<ProductResponseDTO> findAll() {
-        return productRepository.findAll()
+    public List<ProductResponseDTO> findAll(String name, BigDecimal minPrice, BigDecimal maxPrice,
+                                            Integer minQuantity, Integer maxQuantity,
+                                            Boolean enabled, Long categoryId,
+                                            LocalDate createdAt, LocalDate updatedAt) {
+        Specification<Product> spec = productSpecification.findByCriteria(name, minPrice, maxPrice, minQuantity, maxQuantity, enabled, categoryId, createdAt, updatedAt);
+        return productRepository.findAll(spec)
                 .stream()
                 .map(productMapper::convertToDTO)
                 .collect(Collectors.toList());

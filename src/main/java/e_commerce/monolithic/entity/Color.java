@@ -14,6 +14,6 @@ import lombok.*;
 @Builder
 public class Color extends  BaseEntity{
 
-    @Column(name = "name", nullable = false)
+    @Column(name = "name", nullable = false, unique = true)
     private String name;
 }

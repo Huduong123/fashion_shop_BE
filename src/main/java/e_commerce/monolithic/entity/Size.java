@@ -14,6 +14,6 @@ import lombok.*;
 @Builder
 public class Size extends BaseEntity {
 
-    @Column(name = "name", nullable = false, unique = true)
+    @Column(name = "name", nullable = false, unique = true, length = 20)
     private String name;
 }

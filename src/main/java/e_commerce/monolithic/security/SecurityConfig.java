@@ -32,7 +32,8 @@ public class SecurityConfig {
             "/api/users/login",
             "/api/users/register",
             "/api/admin/login",
-            "api/users/products/**"
+            "api/users/products/**",
+            "api/users/categories/**",
     };
 
     @Bean

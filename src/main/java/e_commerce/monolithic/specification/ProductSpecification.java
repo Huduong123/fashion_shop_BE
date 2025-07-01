@@ -2,6 +2,7 @@ package e_commerce.monolithic.specification;
 
 import e_commerce.monolithic.entity.Category;
 import e_commerce.monolithic.entity.Product;
+import e_commerce.monolithic.entity.ProductVariant;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
@@ -28,24 +29,26 @@ public class ProductSpecification {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
+            if (minPrice != null || maxPrice != null || minQuantity != null || maxQuantity != null) {
+                Join<Product, ProductVariant> variantJoin = root.join("productVariants");
+                if (minPrice != null) {
+                    predicates.add(criteriaBuilder.greaterThanOrEqualTo(variantJoin.get("price"), minPrice));
+                }
+                if (maxPrice != null) {
+                    predicates.add(criteriaBuilder.lessThanOrEqualTo(variantJoin.get("price"), maxPrice));
+                }
+                if (minQuantity != null) {
+                    predicates.add(criteriaBuilder.greaterThanOrEqualTo(variantJoin.get("quantity"), minQuantity));
+                }
+                if (maxQuantity != null) {
+                    predicates.add(criteriaBuilder.lessThanOrEqualTo(variantJoin.get("quantity"), maxQuantity));
+                }
+                query.distinct(true);
+            }
+
             // tìm theo tên
             if (name != null && !name.trim().isEmpty()) {
                 predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
-            }
-            // tìm theo giá
-            if (minPrice != null) {
-                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("price"), minPrice));
-            }
-            if (maxPrice != null) {
-                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("price"), maxPrice));
-            }
-
-            //tìm theo số lượng
-            if (minQuantity != null) {
-                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("quantity"), minQuantity));
-            }
-            if (maxQuantity != null) {
-                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("quantity"), maxQuantity));
             }
 
             // tìm theo trạng thái

@@ -32,8 +32,8 @@ public class SecurityConfig {
             "/api/users/login",
             "/api/users/register",
             "/api/admin/login",
-            "api/users/products/**",
-            "api/users/categories/**",
+            "/api/users/products/**",
+            "/api/users/categories/**",
     };
 
     @Bean
@@ -48,6 +48,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN") // Chỉ ADMIN mới có quyền truy cập các đường dẫn này
                         // Ví dụ: Người dùng hoặc admin đều có thể xem/cập nhật profile của họ
                         .requestMatchers("/api/user/profile/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/users/cart/**").hasAnyRole("USER", "ADMIN")
                         .anyRequest().authenticated() // Tất cả các request khác yêu cầu xác thực
                 )
                 .exceptionHandling(exceptions -> exceptions

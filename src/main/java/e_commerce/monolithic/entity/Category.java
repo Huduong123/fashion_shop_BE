@@ -17,7 +17,7 @@ import java.util.List;
 @ToString(exclude = "products")
 public class Category extends BaseEntity{
 
-    @Column(name = "name", nullable = false, unique = true, length = 150)
+    @Column(name = "name", nullable = false, unique = true, length = 100)
     private String name;
 
     @Column(name = "description", columnDefinition = "TEXT")

@@ -21,7 +21,7 @@ import java.util.Set;
 @ToString(exclude = {"category", "productVariants"})
 public class Product  extends  BaseEntity{
 
-    @Column(name = "name", nullable = false, length = 500)
+    @Column(name = "name", nullable = false, length = 255)
     private String name;
 
     @Column(name = "description", columnDefinition = "TEXT")

@@ -34,6 +34,7 @@ public class SecurityConfig {
             "/api/admin/login",
             "/api/users/products/**",
             "/api/users/categories/**",
+
     };
 
     @Bean
@@ -49,6 +50,7 @@ public class SecurityConfig {
                         // Ví dụ: Người dùng hoặc admin đều có thể xem/cập nhật profile của họ
                         .requestMatchers("/api/user/profile/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/users/cart/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers("/api/users/orders/**").hasRole("USER")
                         .anyRequest().authenticated() // Tất cả các request khác yêu cầu xác thực
                 )
                 .exceptionHandling(exceptions -> exceptions

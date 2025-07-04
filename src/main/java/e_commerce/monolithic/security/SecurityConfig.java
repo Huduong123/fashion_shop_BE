@@ -72,7 +72,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // Cần thay thế "*" bằng các origin cụ thể của frontend trong môi trường production
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:8080", "http://your-frontend-domain.com")); // Cho phép từ các origin cụ thể, hoặc Arrays.asList("*") cho tất cả (chỉ dev)
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:8080", "http://your-frontend-domain.com", "http://localhost:5173")); // Cho phép từ các origin cụ thể, hoặc Arrays.asList("*") cho tất cả (chỉ dev)
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS")); // Các phương thức HTTP được cho phép
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept")); // Các header được cho phép
         configuration.setAllowCredentials(true); // Cho phép gửi cookie hoặc HTTP authentication (nếu có)

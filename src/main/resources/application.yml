@@ -3,9 +3,9 @@ spring:
     name: monolithic
 
   datasource:
-    url: ${DATABASE_URL}
-    username: ${DATABASE_USERNAME}
-    password: ${DATABASE_PASSWORD}
+    url: ${DATABASE_URL:jdbc:mysql://localhost:3306/fashion_shop_db?useSSL=false&serverTimezone=UTC}
+    username: ${DATABASE_USERNAME:root}
+    password: ${DATABASE_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -23,7 +23,7 @@ spring:
     baseline-on-migrate: true
 
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:UxAoeDTzDQWX+corYe5RRITH90myHCHEC19V1KohtIyCVmkoiTsQZt++Swaq4S/A8kkuAsIh1D6vCmJP+e3g==}
 
 logging:
   level:

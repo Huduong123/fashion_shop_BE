@@ -52,8 +52,15 @@ public class AdminAuthController {
     public ResponseEntity<?> verifyToken(HttpServletRequest request) {
         try {
             String authHeader = request.getHeader("Authorization");
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String token = authHeader.substring(7);
+            String token = null;
+
+            if (authHeader != null && !authHeader.trim().isEmpty()) {
+                // Support both raw JWT token and Bearer format for backward compatibility
+                if (authHeader.startsWith("Bearer ")) {
+                    token = authHeader.substring(7);
+                } else {
+                    token = authHeader;
+                }
 
                 // Validate token using JwtUtil
                 if (jwtUtil.validateToken(token)) {

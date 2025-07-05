@@ -1,11 +1,11 @@
 package e_commerce.monolithic.service.user;
 
-import e_commerce.monolithic.dto.admin.product.ProductResponseDTO;
+import java.math.BigDecimal;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import java.math.BigDecimal;
+import e_commerce.monolithic.dto.admin.product.ProductResponseDTO;
 
 public interface UserProductService {
 
@@ -14,7 +14,9 @@ public interface UserProductService {
             BigDecimal minPrice,
             BigDecimal maxPrice,
             Long categoryId,
-            Pageable pageable
-    );
+            Pageable pageable);
+
     ProductResponseDTO findVisibleProductById(Long productId);
+
+    Page<ProductResponseDTO> findVisibleProductsByCategory(Long categoryId, Pageable pageable);
 }

@@ -3,7 +3,6 @@ package e_commerce.monolithic.security;
 import java.io.IOException;
 import java.util.stream.Collectors;
 
-import e_commerce.monolithic.service.common.UserValidationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -12,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import e_commerce.monolithic.service.auth.UserAuthService;
+import e_commerce.monolithic.service.common.UserValidationService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,7 +25,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final UserValidationService userValidationService;
 
     @Autowired
-    public JwtAuthenticationFilter(JwtUtil jwtUtil, UserAuthService userAuthService, UserValidationService userValidationService) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, UserAuthService userAuthService,
+            UserValidationService userValidationService) {
         this.jwtUtil = jwtUtil;
         this.userAuthService = userAuthService;
         this.userValidationService = userValidationService;
@@ -33,15 +34,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
 
         String authHeader = request.getHeader("Authorization");
         String username = null;
         String jwt = null;
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            jwt = authHeader.substring(7);
+        if (authHeader != null && !authHeader.trim().isEmpty()) {
+            // Support both raw JWT token and Bearer format for backward compatibility
+            if (authHeader.startsWith("Bearer ")) {
+                jwt = authHeader.substring(7);
+            } else {
+                jwt = authHeader;
+            }
+
             try {
                 username = jwtUtil.extractUsername(jwt);
             } catch (Exception e) {
@@ -58,7 +65,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 if (jwtUtil.validateToken(jwt)) {
                     // Spring Security expects GrantedAuthority objects
                     var authorities = user.getAuthorities().stream()
-                            .map(auth -> new org.springframework.security.core.authority.SimpleGrantedAuthority(auth.getAuthority()))
+                            .map(auth -> new org.springframework.security.core.authority.SimpleGrantedAuthority(
+                                    auth.getAuthority()))
                             .collect(Collectors.toList());
 
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(

@@ -181,7 +181,8 @@ public class ProductServiceImp implements ProductService {
     // hàm helper tạo 1 product variant
     private ProductVariant createVariantFromDTO(ProductVariantCreateDTO productVariantCreateDTO) {
         Color color = findColorById(productVariantCreateDTO.getColorId());
-        Size size = findSizeById(productVariantCreateDTO.getSizeId());
+        Size size = productVariantCreateDTO.getSizeId() != null ? findSizeById(productVariantCreateDTO.getSizeId())
+                : null;
         return productVariantMapper.convertCreateDtoToEntity(productVariantCreateDTO, color, size);
     }
 
@@ -205,21 +206,24 @@ public class ProductServiceImp implements ProductService {
                 if (isVariantModified(existingVariant, dto)) {
                     // Chỉ cập nhật nếu có sự thay đổi
                     Color color = findColorById(dto.getColorId());
-                    Size size = findSizeById(dto.getSizeId());
+                    Size size = dto.getSizeId() != null ? findSizeById(dto.getSizeId()) : null;
 
                     // Logic kiểm tra trùng lặp khi thay đổi color/size
-                    String newAttributeKey = color.getId() + "-" + size.getId();
+                    String newAttributeKey = color.getId() + "-" + (size != null ? size.getId() : "null");
                     String oldAttributeKey = existingVariant.getColor().getId() + "-"
-                            + existingVariant.getSize().getId();
+                            + (existingVariant.getSize() != null ? existingVariant.getSize().getId() : "null");
 
                     if (!newAttributeKey.equals(oldAttributeKey)) {
                         // Nếu thay đổi, kiểm tra xem key mới có bị một biến thể khác chiếm giữ không
                         boolean isDuplicate = product.getProductVariants().stream()
                                 .anyMatch(v -> !v.getId().equals(dto.getId())
-                                        && (v.getColor().getId() + "-" + v.getSize().getId()).equals(newAttributeKey));
+                                        && (v.getColor().getId() + "-"
+                                                + (v.getSize() != null ? v.getSize().getId() : "null"))
+                                                .equals(newAttributeKey));
                         if (isDuplicate) {
                             throw new IllegalArgumentException("Không thể cập nhật. Biến thể với Màu '"
-                                    + color.getName() + "' và Size '" + size.getName() + "' đã tồn tại.");
+                                    + color.getName() + "' và Size '" + (size != null ? size.getName() : "Không có")
+                                    + "' đã tồn tại.");
                         }
                     }
 
@@ -236,15 +240,18 @@ public class ProductServiceImp implements ProductService {
             // Trường hợp 2: Thêm biến thể mới (DTO không có ID)
             else {
                 Color color = findColorById(dto.getColorId());
-                Size size = findSizeById(dto.getSizeId());
-                String attributeKey = color.getId() + "-" + size.getId();
+                Size size = dto.getSizeId() != null ? findSizeById(dto.getSizeId()) : null;
+                String attributeKey = color.getId() + "-" + (size != null ? size.getId() : "null");
 
                 // Kiểm tra trùng lặp với tất cả các biến thể đã có của sản phẩm
                 boolean isDuplicate = product.getProductVariants().stream()
-                        .anyMatch(v -> (v.getColor().getId() + "-" + v.getSize().getId()).equals(attributeKey));
+                        .anyMatch(
+                                v -> (v.getColor().getId() + "-" + (v.getSize() != null ? v.getSize().getId() : "null"))
+                                        .equals(attributeKey));
                 if (isDuplicate) {
                     throw new IllegalArgumentException(
-                            "Biến thể với Màu '" + color.getName() + "' và Size '" + size.getName() + "' đã tồn tại.");
+                            "Biến thể với Màu '" + color.getName() + "' và Size '"
+                                    + (size != null ? size.getName() : "Không có") + "' đã tồn tại.");
                 }
 
                 ProductVariant newVariant = productVariantMapper.convertUpdateDtoToNewEntity(dto, color, size);
@@ -267,7 +274,9 @@ public class ProductServiceImp implements ProductService {
         // So sánh từng trường. Nếu có bất kỳ trường nào khác nhau, trả về true.
         if (!variant.getColor().getId().equals(dto.getColorId()))
             return true;
-        if (!variant.getSize().getId().equals(dto.getSizeId()))
+        // Handle null size comparison
+        Long variantSizeId = variant.getSize() != null ? variant.getSize().getId() : null;
+        if (!java.util.Objects.equals(variantSizeId, dto.getSizeId()))
             return true;
         if (variant.getPrice().compareTo(dto.getPrice()) != 0)
             return true;
@@ -298,7 +307,7 @@ public class ProductServiceImp implements ProductService {
 
     private void checkDuplicateVariantsOncreate(List<ProductVariantCreateDTO> variantCreateDTOS) {
         long distinctCount = variantCreateDTOS.stream()
-                .map(v -> v.getColorId() + "-" + v.getSizeId())
+                .map(v -> v.getColorId() + "-" + (v.getSizeId() != null ? v.getSizeId() : "null"))
                 .distinct()
                 .count();
         if (distinctCount < variantCreateDTOS.size()) {
@@ -309,7 +318,7 @@ public class ProductServiceImp implements ProductService {
 
     private void checkDuplicateVariantsOnUpdate(List<ProductVariantUpdateDTO> variantUpdateDTOList) {
         long distinctCount = variantUpdateDTOList.stream()
-                .map(v -> v.getColorId() + "-" + v.getSizeId())
+                .map(v -> v.getColorId() + "-" + (v.getSizeId() != null ? v.getSizeId() : "null"))
                 .distinct()
                 .count();
         if (distinctCount < variantUpdateDTOList.size()) {
@@ -319,7 +328,7 @@ public class ProductServiceImp implements ProductService {
 
     // hàm find
     private Product findProductById(Long productId) {
-        return productRepository.findById(productId)
+        return productRepository.findByIdWithVariants(productId)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy sản phẩm với ID: " + productId));
     }
 

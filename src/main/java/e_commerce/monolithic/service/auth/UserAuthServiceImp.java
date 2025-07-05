@@ -7,6 +7,7 @@ import java.util.Set;
 import e_commerce.monolithic.dto.auth.AdminLoginDTO;
 import e_commerce.monolithic.entity.Authority;
 import e_commerce.monolithic.exeption.NotFoundException;
+import e_commerce.monolithic.exeption.AuthenticationFailedException;
 import e_commerce.monolithic.mapper.UserMapper;
 import e_commerce.monolithic.repository.AuthorityRepository;
 import e_commerce.monolithic.service.admin.AuthorityServiceImp;
@@ -23,6 +24,7 @@ import e_commerce.monolithic.security.JwtUtil;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 @Service
 public class UserAuthServiceImp implements UserAuthService {
 
@@ -31,10 +33,12 @@ public class UserAuthServiceImp implements UserAuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthorityRepository authorityRepository;
     private final UserMapper userMapper;
-    private final UserValidationService  userValidationService;
+    private final UserValidationService userValidationService;
     private static final Logger logger = LoggerFactory.getLogger(UserAuthServiceImp.class);
 
-    public UserAuthServiceImp(UserRepository userRepository, JwtUtil jwtUtil, PasswordEncoder passwordEncoder, AuthorityRepository authorityRepository, UserMapper userMapper,  UserValidationService userValidationService) {
+    public UserAuthServiceImp(UserRepository userRepository, JwtUtil jwtUtil, PasswordEncoder passwordEncoder,
+            AuthorityRepository authorityRepository, UserMapper userMapper,
+            UserValidationService userValidationService) {
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder;
@@ -52,8 +56,7 @@ public class UserAuthServiceImp implements UserAuthService {
                     return new EntityNotFoundException("User not found with username: " + userLoginDTO.getUsername());
                 });
 
-
-        validatePasswordInvalid(userLoginDTO.getPassword(),user);
+        validatePasswordInvalid(userLoginDTO.getPassword(), user);
         validateEnabled(user);
 
         return jwtUtil.generateToken(user.getUsername());
@@ -62,11 +65,22 @@ public class UserAuthServiceImp implements UserAuthService {
     @Override
     @Transactional
     public String loginAdmin(AdminLoginDTO adminLoginDTO) {
-        User user = userValidationService.findByUsername(adminLoginDTO.getUsername())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+        // Tìm user, nếu không tồn tại thì ném AuthenticationFailedException
+        Optional<User> userOptional = userValidationService.findByUsername(adminLoginDTO.getUsername());
+        if (userOptional.isEmpty()) {
+            throw new AuthenticationFailedException();
+        }
 
-        //validate
-        validatePasswordInvalid(adminLoginDTO.getPassword(),user);
+        User user = userOptional.get();
+
+        // Validate password - nếu sai cũng ném AuthenticationFailedException
+        try {
+            validatePasswordInvalid(adminLoginDTO.getPassword(), user);
+        } catch (IllegalArgumentException e) {
+            throw new AuthenticationFailedException();
+        }
+
+        // Validate other conditions
         checkIsAdmin(user);
         validateEnabled(user);
 
@@ -90,6 +104,7 @@ public class UserAuthServiceImp implements UserAuthService {
             throw new IllegalArgumentException("Access denied. You are not an admin");
         }
     }
+
     private void validatePasswordInvalid(String rawPassword, User user) {
         if (!userValidationService.isPasswordMatch(rawPassword, user.getPassword())) { // Sử dụng service chung
             throw new IllegalArgumentException("Invalid password");
@@ -105,7 +120,7 @@ public class UserAuthServiceImp implements UserAuthService {
         if (userValidationService.existsByEmail(userRegisterDTO.getEmail())) {
             throw new IllegalArgumentException("Email already exists");
         }
-        if  (userValidationService.existsByPhone(userRegisterDTO.getPhone())) {
+        if (userValidationService.existsByPhone(userRegisterDTO.getPhone())) {
             throw new IllegalArgumentException("Phone already exists");
         }
         // Thêm xác thực dữ liệu
@@ -120,20 +135,19 @@ public class UserAuthServiceImp implements UserAuthService {
         User user = userMapper.convertToEntity(
                 userRegisterDTO,
                 Set.of(authority),
-                passwordEncoder.encode(userRegisterDTO.getPassword())
-        );
+                passwordEncoder.encode(userRegisterDTO.getPassword()));
 
-        //Thiết lập quan hệ 2 chiều giữa User và Authority
+        // Thiết lập quan hệ 2 chiều giữa User và Authority
         authority.setUser(user);
 
-        //Lưu user và authority vào DB
+        // Lưu user và authority vào DB
         User savedUser = userRepository.save(user);
         authorityRepository.save(authority);
 
         return savedUser;
     }
 
-    private void validateUserRegisterDTO (UserRegisterDTO userRegisterDTO) {
+    private void validateUserRegisterDTO(UserRegisterDTO userRegisterDTO) {
         if (!userRegisterDTO.getEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
             throw new IllegalArgumentException("Invalid email format");
         }
@@ -141,7 +155,5 @@ public class UserAuthServiceImp implements UserAuthService {
             throw new IllegalArgumentException("Password must be at least 8 characters");
         }
     }
-
-
 
 }

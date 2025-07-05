@@ -45,7 +45,7 @@ CREATE TABLE categories (
                             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- -- MỚI: Bảng colors và sizes
+-- Bảng colors và sizes
 CREATE TABLE colors (
                         id BIGINT PRIMARY KEY AUTO_INCREMENT,
                         name VARCHAR(50) NOT NULL UNIQUE,
@@ -60,7 +60,7 @@ CREATE TABLE sizes (
                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- -- SỬA ĐỔI: Bảng products chỉ chứa thông tin chung
+-- Bảng products chỉ chứa thông tin chung
 CREATE TABLE products (
                           id BIGINT PRIMARY KEY AUTO_INCREMENT,
                           name VARCHAR(255) NOT NULL,
@@ -70,12 +70,12 @@ CREATE TABLE products (
                           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- -- MỚI: Bảng product_variants chứa các biến thể (màu, size, giá, số lượng)
+-- Bảng product_variants chứa các biến thể (màu, size, giá, số lượng)
 CREATE TABLE product_variants (
                                   id BIGINT PRIMARY KEY AUTO_INCREMENT,
                                   product_id BIGINT NOT NULL,
                                   color_id BIGINT NOT NULL,
-                                  size_id BIGINT NOT NULL,
+                                  size_id BIGINT DEFAULT NULL, -- <<<<<<<<<< ĐÃ SỬA: Bỏ NOT NULL để cho phép giá trị NULL
                                   price DECIMAL(10,2) NOT NULL,
                                   quantity INT NOT NULL,
                                   image_url VARCHAR(255),
@@ -84,11 +84,11 @@ CREATE TABLE product_variants (
                                   UNIQUE KEY uq_product_variant (product_id, color_id, size_id)
 );
 
--- -- SỬA ĐỔI: Bảng cart_items tham chiếu tới product_variant_id
+-- Bảng cart_items tham chiếu tới product_variant_id
 CREATE TABLE cart_items (
                             id BIGINT PRIMARY KEY AUTO_INCREMENT,
                             user_id BIGINT NOT NULL,
-                            product_variant_id BIGINT NOT NULL, -- Đã thay đổi
+                            product_variant_id BIGINT NOT NULL,
                             quantity INT NOT NULL,
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -104,11 +104,11 @@ CREATE TABLE orders (
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- -- SỬA ĐỔI: Bảng order_items tham chiếu tới product_variant_id
+-- Bảng order_items tham chiếu tới product_variant_id
 CREATE TABLE order_items (
                              id BIGINT PRIMARY KEY AUTO_INCREMENT,
                              order_id BIGINT NOT NULL,
-                             product_variant_id BIGINT NOT NULL, -- Đã thay đổi
+                             product_variant_id BIGINT NOT NULL,
                              quantity INT NOT NULL,
                              price DECIMAL(10,2) NOT NULL,
                              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -129,15 +129,14 @@ CREATE TABLE reviews (
 -- Add Auxiliary Indexes
 CREATE INDEX idx_authorities_user_id ON authorities (user_id);
 CREATE INDEX idx_cart_items_user_id ON cart_items (user_id);
-CREATE INDEX idx_cart_items_variant_id ON cart_items (product_variant_id); -- Đã thay đổi
+CREATE INDEX idx_cart_items_variant_id ON cart_items (product_variant_id);
 CREATE INDEX idx_orders_user_id ON orders (user_id);
 CREATE INDEX idx_order_items_order_id ON order_items (order_id);
-CREATE INDEX idx_order_items_variant_id ON order_items (product_variant_id); -- Đã thay đổi
+CREATE INDEX idx_order_items_variant_id ON order_items (product_variant_id);
 CREATE INDEX idx_products_category_id ON products (category_id);
 CREATE INDEX idx_reviews_user_id ON reviews (user_id);
 CREATE INDEX idx_reviews_product_id ON reviews (product_id);
 CREATE INDEX idx_user_addresses_user_id ON user_addresses (user_id);
--- Mới
 CREATE INDEX idx_variant_product_id ON product_variants (product_id);
 CREATE INDEX idx_variant_color_id ON product_variants (color_id);
 CREATE INDEX idx_variant_size_id ON product_variants (size_id);

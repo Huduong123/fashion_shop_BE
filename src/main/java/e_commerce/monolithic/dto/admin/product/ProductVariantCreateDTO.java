@@ -1,13 +1,13 @@
 package e_commerce.monolithic.dto.admin.product;
 
+import java.math.BigDecimal;
+
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.math.BigDecimal;
 
 @Data
 @NoArgsConstructor
@@ -18,7 +18,6 @@ public class ProductVariantCreateDTO {
     @NotNull(message = "Color không được để trống")
     private Long colorId;
 
-    @NotNull(message = "Size không được để trống")
     private Long sizeId;
 
     @NotNull(message = "Giá tiền không được để trống")

@@ -102,6 +102,23 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     /**
+     * Xử lý ngoại lệ AuthenticationFailedException (tự định nghĩa).
+     * Thường xảy ra khi tài khoản hoặc mật khẩu không chính xác.
+     * Trả về mã lỗi HTTP 401 (Unauthorized).
+     *
+     * @param ex AuthenticationFailedException xảy ra
+     * @return ResponseEntity chứa ErrorResponse và mã lỗi 401
+     */
+    @ExceptionHandler(AuthenticationFailedException.class)
+    public ResponseEntity<?> handleAuthenticationFailed(AuthenticationFailedException ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.UNAUTHORIZED.value(),
+                HttpStatus.UNAUTHORIZED.getReasonPhrase(),
+                ex.getMessage());
+        return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
+    }
+
+    /**
      * Xử lý ngoại lệ BadCredentialsException.
      * Thường xảy ra khi username hoặc password không đúng.
      * Trả về mã lỗi HTTP 401 (Unauthorized).

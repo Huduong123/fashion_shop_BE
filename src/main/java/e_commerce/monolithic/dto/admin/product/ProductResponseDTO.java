@@ -24,6 +24,7 @@ public class ProductResponseDTO {
     private Boolean enabled;
 
     private Long categoryId;
+    private String categoryName;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

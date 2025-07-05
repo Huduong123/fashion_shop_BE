@@ -20,11 +20,16 @@ public class ProductMapper {
         this.productVariantMapper = productVariantMapper;
     }
 
-    public ProductResponseDTO convertToDTO (Product product) {
+    public ProductResponseDTO convertToDTO(Product product) {
         if (product == null) {
             return null;
         }
-        Long categoryId = (product.getCategory().getId() != null) ? product.getCategory().getId() : null;
+        Long categoryId = (product.getCategory() != null && product.getCategory().getId() != null)
+                ? product.getCategory().getId()
+                : null;
+        String categoryName = (product.getCategory() != null && product.getCategory().getName() != null)
+                ? product.getCategory().getName()
+                : null;
 
         var productVariants = product.getProductVariants()
                 .stream()
@@ -37,6 +42,7 @@ public class ProductMapper {
         responseDTO.setDescription(product.getDescription());
         responseDTO.setEnabled(product.isEnabled());
         responseDTO.setCategoryId(categoryId);
+        responseDTO.setCategoryName(categoryName);
         responseDTO.setCreatedAt(product.getCreatedAt());
         responseDTO.setUpdatedAt(product.getUpdatedAt());
         responseDTO.setProductVariants(productVariants);
@@ -44,7 +50,7 @@ public class ProductMapper {
         return responseDTO;
     }
 
-    public Product convertCreateDtoToEntity (ProductCreateDTO productCreateDTO, Category category) {
+    public Product convertCreateDtoToEntity(ProductCreateDTO productCreateDTO, Category category) {
         if (productCreateDTO == null) {
             return null;
         }
@@ -58,7 +64,8 @@ public class ProductMapper {
                 .build();
     }
 
-    public void convertUpdateDtoToEntity (ProductUpdateDTO productUpdateDTO, Product existingProduct, Category category) {
+    public void convertUpdateDtoToEntity(ProductUpdateDTO productUpdateDTO, Product existingProduct,
+            Category category) {
         if (productUpdateDTO == null || existingProduct == null) {
             return;
         }

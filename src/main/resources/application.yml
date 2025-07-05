@@ -22,8 +22,18 @@ spring:
     validate-on-migrate: false
     baseline-on-migrate: true
 
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
+
 jwt:
   secret: ${JWT_SECRET:UxAoeDTzDQWX+corYe5RRITH90myHCHEC19V1KohtIyCVmkoiTsQZt++Swaq4S/A8kkuAsIh1D6vCmJP+e3g==}
+
+app:
+  upload:
+    dir: ${UPLOAD_DIR:uploads}
+    url: ${UPLOAD_URL:http://localhost:8080/uploads}
 
 logging:
   level:

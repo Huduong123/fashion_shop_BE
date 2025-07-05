@@ -25,40 +25,62 @@ public class UserProductController {
     @GetMapping
     public ResponseEntity<Page<ProductResponseDTO>> getAllVisibleProducts(
             @RequestParam(required = false) String name,
-            @RequestParam(required = false)BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(required = false) Long categoryId,
 
-            //Tham số phân trang
+            // Tham số phân trang
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size,
 
-            @RequestParam(defaultValue = "createdAt,desc") String[] sort
-            ){
+            @RequestParam(defaultValue = "createdAt,desc") String[] sort) {
         List<Sort.Order> orders = new ArrayList<>();
-        if(sort[0].contains(",")) {
-            for(String sortOrder : sort) {
+        if (sort[0].contains(",")) {
+            for (String sortOrder : sort) {
                 String[] _sort = sortOrder.split(",");
                 Sort.Direction direction = _sort[1].equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
                 orders.add(new Sort.Order(direction, _sort[0]));
             }
-        }else {
+        } else {
             Sort.Direction direction = sort[1].equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
             orders.add(new Sort.Order(direction, sort[0]));
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(orders));
 
-        Page<ProductResponseDTO> productResponseDTOS = userProductService.findAllVisibleProducts(name, minPrice, maxPrice, categoryId, pageable);
+        Page<ProductResponseDTO> productResponseDTOS = userProductService.findAllVisibleProducts(name, minPrice,
+                maxPrice, categoryId, pageable);
 
         return ResponseEntity.ok(productResponseDTOS);
 
     }
 
-
     @GetMapping("/{id}")
-    public ResponseEntity<ProductResponseDTO> getProductById(@PathVariable("id") long id){
+    public ResponseEntity<ProductResponseDTO> getProductById(@PathVariable("id") long id) {
         ProductResponseDTO productResponseDTO = userProductService.findVisibleProductById(id);
         return ResponseEntity.ok(productResponseDTO);
+    }
+
+    @GetMapping("/category/{categoryId}")
+    public ResponseEntity<Page<ProductResponseDTO>> getVisibleProductsByCategory(
+            @PathVariable Long categoryId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size,
+            @RequestParam(defaultValue = "createdAt,desc") String[] sort) {
+        List<Sort.Order> orders = new ArrayList<>();
+        if (sort[0].contains(",")) {
+            for (String sortOrder : sort) {
+                String[] _sort = sortOrder.split(",");
+                Sort.Direction direction = _sort[1].equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+                orders.add(new Sort.Order(direction, _sort[0]));
+            }
+        } else {
+            Sort.Direction direction = sort[1].equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+            orders.add(new Sort.Order(direction, sort[0]));
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(orders));
+        Page<ProductResponseDTO> products = userProductService.findVisibleProductsByCategory(categoryId, pageable);
+        return ResponseEntity.ok(products);
     }
 }

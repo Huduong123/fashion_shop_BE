@@ -1,8 +1,33 @@
 package e_commerce.monolithic.service.admin;
 
-import e_commerce.monolithic.dto.admin.product.*;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+
+import e_commerce.monolithic.dto.admin.product.ProductCreateDTO;
+import e_commerce.monolithic.dto.admin.product.ProductResponseDTO;
+import e_commerce.monolithic.dto.admin.product.ProductUpdateDTO;
+import e_commerce.monolithic.dto.admin.product.ProductVariantCreateDTO;
+import e_commerce.monolithic.dto.admin.product.ProductVariantUpdateDTO;
 import e_commerce.monolithic.dto.common.ResponseMessageDTO;
-import e_commerce.monolithic.entity.*;
+import e_commerce.monolithic.entity.BaseEntity;
+import e_commerce.monolithic.entity.Category;
+import e_commerce.monolithic.entity.Color;
+import e_commerce.monolithic.entity.Product;
+import e_commerce.monolithic.entity.ProductVariant;
+import e_commerce.monolithic.entity.Size;
 import e_commerce.monolithic.exeption.NotFoundException;
 import e_commerce.monolithic.mapper.ProductMapper;
 import e_commerce.monolithic.mapper.ProductVariantMapper;
@@ -13,18 +38,8 @@ import e_commerce.monolithic.repository.SizeRepository;
 import e_commerce.monolithic.specification.ProductSpecification;
 import jakarta.transaction.Transactional;
 
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 @Service
-public class ProductServiceImp implements  ProductService{
+public class ProductServiceImp implements ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
@@ -34,7 +49,9 @@ public class ProductServiceImp implements  ProductService{
     private final ProductVariantMapper productVariantMapper;
     private final ProductSpecification productSpecification;
 
-    public ProductServiceImp(ProductRepository productRepository, CategoryRepository categoryRepository, ColorRepository colorRepository, SizeRepository sizeRepository, ProductMapper productMapper, ProductVariantMapper productVariantMapper, ProductSpecification productSpecification) {
+    public ProductServiceImp(ProductRepository productRepository, CategoryRepository categoryRepository,
+            ColorRepository colorRepository, SizeRepository sizeRepository, ProductMapper productMapper,
+            ProductVariantMapper productVariantMapper, ProductSpecification productSpecification) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.colorRepository = colorRepository;
@@ -45,12 +62,13 @@ public class ProductServiceImp implements  ProductService{
     }
 
     @Override
-   @Transactional
+    @Transactional
     public List<ProductResponseDTO> findAll(String name, BigDecimal minPrice, BigDecimal maxPrice,
-                                            Integer minQuantity, Integer maxQuantity,
-                                            Boolean enabled, Long categoryId,
-                                            LocalDate createdAt, LocalDate updatedAt) {
-        Specification<Product> spec = productSpecification.findByCriteria(name, minPrice, maxPrice, minQuantity, maxQuantity, enabled, categoryId, createdAt, updatedAt);
+            Integer minQuantity, Integer maxQuantity,
+            Boolean enabled, Long categoryId,
+            LocalDate createdAt, LocalDate updatedAt) {
+        Specification<Product> spec = productSpecification.findByCriteria(name, minPrice, maxPrice, minQuantity,
+                maxQuantity, enabled, categoryId, createdAt, updatedAt);
         return productRepository.findAll(spec)
                 .stream()
                 .map(productMapper::convertToDTO)
@@ -68,12 +86,12 @@ public class ProductServiceImp implements  ProductService{
     @Transactional
     public ProductResponseDTO createProduct(ProductCreateDTO productCreateDTO) {
 
-        //Validation logic nghiệp vụ
+        // Validation logic nghiệp vụ
         checkProductNameExists(productCreateDTO.getName());
 
         checkDuplicateVariantsOncreate(productCreateDTO.getProductVariants());
 
-        //tìm categiry
+        // tìm categiry
         Category category = findCategoryById(productCreateDTO.getCategoryId());
 
         // chuyển DTO sang entity
@@ -101,7 +119,7 @@ public class ProductServiceImp implements  ProductService{
 
         Product existingProduct = findProductById(productId);
 
-        //validation
+        // validation
         checkProductNameExistsForUpdate(productUpdateDTO.getName(), productId);
         checkDuplicateVariantsOnUpdate(productUpdateDTO.getProductVariants());
 
@@ -114,7 +132,7 @@ public class ProductServiceImp implements  ProductService{
         // xử lý logic cập nhật các biến thể
         updateProductVariants(existingProduct, productUpdateDTO.getProductVariants());
 
-        //lưu
+        // lưu
         Product updatedProduct = productRepository.save(existingProduct);
 
         return productMapper.convertToDTO(updatedProduct);
@@ -127,17 +145,46 @@ public class ProductServiceImp implements  ProductService{
 
         productRepository.deleteById(productId);
 
-        return  new ResponseMessageDTO(HttpStatus.OK, "Xóa sản phẩm với ID: " + productId + " thành công");
+        return new ResponseMessageDTO(HttpStatus.OK, "Xóa sản phẩm với ID: " + productId + " thành công");
 
     }
 
+    @Override
+    @Transactional
+    public List<ProductResponseDTO> findProductsByCategory(Long categoryId) {
+        // Validate category exists
+        findCategoryById(categoryId);
 
-    //hàm helper tạo 1 product variant
+        // Use existing specification with only categoryId filter
+        Specification<Product> spec = productSpecification.findByCriteria(null, null, null, null, null, null,
+                categoryId, null, null);
+        return productRepository.findAll(spec)
+                .stream()
+                .map(productMapper::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public Page<ProductResponseDTO> findProductsByCategoryWithPagination(Long categoryId, Pageable pageable) {
+        // Validate category exists
+        findCategoryById(categoryId);
+
+        // Use existing specification with only categoryId filter
+        Specification<Product> spec = productSpecification.findByCriteria(null, null, null, null, null, null,
+                categoryId, null, null);
+        Page<Product> productPage = productRepository.findAll(spec, pageable);
+
+        return productPage.map(productMapper::convertToDTO);
+    }
+
+    // hàm helper tạo 1 product variant
     private ProductVariant createVariantFromDTO(ProductVariantCreateDTO productVariantCreateDTO) {
         Color color = findColorById(productVariantCreateDTO.getColorId());
         Size size = findSizeById(productVariantCreateDTO.getSizeId());
         return productVariantMapper.convertCreateDtoToEntity(productVariantCreateDTO, color, size);
     }
+
     private void updateProductVariants(Product product, List<ProductVariantUpdateDTO> variantDTOs) {
         // Map các biến thể hiện có bằng ID để dễ truy cập
         Map<Long, ProductVariant> existingVariantsMap = product.getProductVariants().stream()
@@ -151,7 +198,8 @@ public class ProductServiceImp implements  ProductService{
             if (dto.getId() != null) {
                 // Lấy biến thể gốc từ map, nếu không có thì lỗi
                 ProductVariant existingVariant = Optional.ofNullable(existingVariantsMap.get(dto.getId()))
-                        .orElseThrow(() -> new NotFoundException("Không tìm thấy biến thể với ID: " + dto.getId() + " để cập nhật."));
+                        .orElseThrow(() -> new NotFoundException(
+                                "Không tìm thấy biến thể với ID: " + dto.getId() + " để cập nhật."));
 
                 // Kiểm tra xem có cần cập nhật không
                 if (isVariantModified(existingVariant, dto)) {
@@ -161,14 +209,17 @@ public class ProductServiceImp implements  ProductService{
 
                     // Logic kiểm tra trùng lặp khi thay đổi color/size
                     String newAttributeKey = color.getId() + "-" + size.getId();
-                    String oldAttributeKey = existingVariant.getColor().getId() + "-" + existingVariant.getSize().getId();
+                    String oldAttributeKey = existingVariant.getColor().getId() + "-"
+                            + existingVariant.getSize().getId();
 
                     if (!newAttributeKey.equals(oldAttributeKey)) {
                         // Nếu thay đổi, kiểm tra xem key mới có bị một biến thể khác chiếm giữ không
                         boolean isDuplicate = product.getProductVariants().stream()
-                                .anyMatch(v -> !v.getId().equals(dto.getId()) && (v.getColor().getId() + "-" + v.getSize().getId()).equals(newAttributeKey));
-                        if(isDuplicate){
-                            throw new IllegalArgumentException("Không thể cập nhật. Biến thể với Màu '" + color.getName() + "' và Size '" + size.getName() + "' đã tồn tại.");
+                                .anyMatch(v -> !v.getId().equals(dto.getId())
+                                        && (v.getColor().getId() + "-" + v.getSize().getId()).equals(newAttributeKey));
+                        if (isDuplicate) {
+                            throw new IllegalArgumentException("Không thể cập nhật. Biến thể với Màu '"
+                                    + color.getName() + "' và Size '" + size.getName() + "' đã tồn tại.");
                         }
                     }
 
@@ -192,7 +243,8 @@ public class ProductServiceImp implements  ProductService{
                 boolean isDuplicate = product.getProductVariants().stream()
                         .anyMatch(v -> (v.getColor().getId() + "-" + v.getSize().getId()).equals(attributeKey));
                 if (isDuplicate) {
-                    throw new IllegalArgumentException("Biến thể với Màu '" + color.getName() + "' và Size '" + size.getName() + "' đã tồn tại.");
+                    throw new IllegalArgumentException(
+                            "Biến thể với Màu '" + color.getName() + "' và Size '" + size.getName() + "' đã tồn tại.");
                 }
 
                 ProductVariant newVariant = productVariantMapper.convertUpdateDtoToNewEntity(dto, color, size);
@@ -202,7 +254,8 @@ public class ProductServiceImp implements  ProductService{
         }
 
         // Cập nhật lại danh sách biến thể của Product.
-        // Thao tác này sẽ tự động xóa các biến thể còn lại trong `existingVariantsMap` nhờ `orphanRemoval=true`.
+        // Thao tác này sẽ tự động xóa các biến thể còn lại trong `existingVariantsMap`
+        // nhờ `orphanRemoval=true`.
         product.getProductVariants().clear();
         product.getProductVariants().addAll(finalVariants);
     }
@@ -212,10 +265,14 @@ public class ProductServiceImp implements  ProductService{
      */
     private boolean isVariantModified(ProductVariant variant, ProductVariantUpdateDTO dto) {
         // So sánh từng trường. Nếu có bất kỳ trường nào khác nhau, trả về true.
-        if (!variant.getColor().getId().equals(dto.getColorId())) return true;
-        if (!variant.getSize().getId().equals(dto.getSizeId())) return true;
-        if (variant.getPrice().compareTo(dto.getPrice()) != 0) return true;
-        if (variant.getQuantity() != dto.getQuantity()) return true;
+        if (!variant.getColor().getId().equals(dto.getColorId()))
+            return true;
+        if (!variant.getSize().getId().equals(dto.getSizeId()))
+            return true;
+        if (variant.getPrice().compareTo(dto.getPrice()) != 0)
+            return true;
+        if (variant.getQuantity() != dto.getQuantity())
+            return true;
         // So sánh imageUrl, cần xử lý null
         return !java.util.Objects.equals(variant.getImageUrl(), dto.getImageUrl());
     }
@@ -223,17 +280,19 @@ public class ProductServiceImp implements  ProductService{
     // hàm check exist
     private void checkProductNameExists(String productName) {
         if (productRepository.existsByName(productName)) {
-            throw new IllegalArgumentException("Tên sản phẩm đã tồn tại: " + productName );
+            throw new IllegalArgumentException("Tên sản phẩm đã tồn tại: " + productName);
         }
     }
+
     private void checkProductNameExistsForUpdate(String productName, Long productId) {
-        if(productRepository.existsByNameAndIdNot(productName, productId)) {
+        if (productRepository.existsByNameAndIdNot(productName, productId)) {
             throw new IllegalArgumentException("Tên sản phẩm '" + productName + "' đã tồn tại cho một sản phẩm khác");
         }
     }
+
     private void checkProductExists(Long productId) {
         if (!productRepository.existsById(productId)) {
-            throw  new NotFoundException(" Không tìm thấy sản phẩm với ID: " + productId);
+            throw new NotFoundException(" Không tìm thấy sản phẩm với ID: " + productId);
         }
     }
 
@@ -243,13 +302,14 @@ public class ProductServiceImp implements  ProductService{
                 .distinct()
                 .count();
         if (distinctCount < variantCreateDTOS.size()) {
-            throw  new IllegalArgumentException(" Không tể tạo sản phẩm với các biến thể (màu sắc , kích thước) trùng lặp");
+            throw new IllegalArgumentException(
+                    " Không tể tạo sản phẩm với các biến thể (màu sắc , kích thước) trùng lặp");
         }
     }
 
     private void checkDuplicateVariantsOnUpdate(List<ProductVariantUpdateDTO> variantUpdateDTOList) {
         long distinctCount = variantUpdateDTOList.stream()
-                .map(v-> v.getColorId() + "-" + v.getSizeId())
+                .map(v -> v.getColorId() + "-" + v.getSizeId())
                 .distinct()
                 .count();
         if (distinctCount < variantUpdateDTOList.size()) {
@@ -264,17 +324,18 @@ public class ProductServiceImp implements  ProductService{
     }
 
     private Category findCategoryById(Long categoryId) {
-        return  categoryRepository.findById(categoryId)
+        return categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy sản phẩm với ID: " + categoryId));
     }
+
     private Color findColorById(Long colorId) {
         return colorRepository.findById(colorId)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy màu sắc với ID: " + colorId));
     }
+
     private Size findSizeById(Long sizeId) {
-        return  sizeRepository.findById(sizeId)
+        return sizeRepository.findById(sizeId)
                 .orElseThrow(() -> new NotFoundException(" Không tìm thấy kích thước với ID: " + sizeId));
     }
-
 
 }

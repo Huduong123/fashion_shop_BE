@@ -7,6 +7,7 @@ import e_commerce.monolithic.dto.common.ResponseMessageDTO;
 import e_commerce.monolithic.entity.Color;
 import e_commerce.monolithic.mapper.ColorMapper;
 import e_commerce.monolithic.repository.ColorRepository;
+import e_commerce.monolithic.repository.ProductVariantRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -15,14 +16,17 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-public class ColorServiceImp  implements ColorService {
+public class ColorServiceImp implements ColorService {
 
-    private  final ColorRepository colorRepository;
+    private final ColorRepository colorRepository;
     private final ColorMapper colorMapper;
+    private final ProductVariantRepository productVariantRepository;
 
-    public ColorServiceImp(ColorRepository colorRepository, ColorMapper colorMapper) {
+    public ColorServiceImp(ColorRepository colorRepository, ColorMapper colorMapper,
+            ProductVariantRepository productVariantRepository) {
         this.colorRepository = colorRepository;
         this.colorMapper = colorMapper;
+        this.productVariantRepository = productVariantRepository;
     }
 
     @Override
@@ -70,6 +74,7 @@ public class ColorServiceImp  implements ColorService {
     @Transactional
     public ResponseMessageDTO deleteColorById(Long colorId) {
         checkColorExists(colorId);
+        checkColorNotInUse(colorId);
         colorRepository.deleteById(colorId);
         return new ResponseMessageDTO(HttpStatus.OK, "Color deleted successfully");
     }
@@ -95,6 +100,14 @@ public class ColorServiceImp  implements ColorService {
     private void checkColorExists(Long colorId) {
         if (!colorRepository.existsById(colorId)) {
             throw new IllegalArgumentException("Color " + colorId + " already exists");
+        }
+    }
+
+    private void checkColorNotInUse(Long colorId) {
+        if (productVariantRepository.existsByColorId(colorId)) {
+            long productCount = productVariantRepository.countProductsByColorId(colorId);
+            throw new IllegalArgumentException("Không thể xóa màu này vì đang có " + productCount
+                    + " sản phẩm sử dụng. Vui lòng xóa các sản phẩm liên quan trước.");
         }
     }
 }

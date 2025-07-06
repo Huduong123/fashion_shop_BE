@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ColorUpdateDTO {
     @NotBlank(message = "Tên màu sắc không đuợc để trống")
-    @Size(min = 3, message = "Tên màu sắc phải có ít nhất 3 kí tự")
-    @Pattern(regexp = ".*[a-zA-Z]+.*", message = "Tên màu sắc phải chứa ít nhất một ký tự chữ")
+    @Size(min = 1, max = 50, message = "Tên màu sắc phải có từ 1 đến 50 ký tự")
+    @Pattern(regexp = ".*[\\p{L}]+.*", message = "Tên màu sắc phải chứa ít nhất một ký tự chữ")
     private String name;
 }

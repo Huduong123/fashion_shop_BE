@@ -7,6 +7,7 @@ import e_commerce.monolithic.dto.common.ResponseMessageDTO;
 import e_commerce.monolithic.entity.Size;
 import e_commerce.monolithic.mapper.SizeMapper;
 import e_commerce.monolithic.repository.SizeRepository;
+import e_commerce.monolithic.repository.ProductVariantRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -19,10 +20,13 @@ public class SizeServiceImp implements SizeService {
 
     private final SizeRepository sizeRepository;
     private final SizeMapper sizeMapper;
+    private final ProductVariantRepository productVariantRepository;
 
-    public SizeServiceImp(SizeRepository sizeRepository, SizeMapper sizeMapper) {
+    public SizeServiceImp(SizeRepository sizeRepository, SizeMapper sizeMapper,
+            ProductVariantRepository productVariantRepository) {
         this.sizeRepository = sizeRepository;
         this.sizeMapper = sizeMapper;
+        this.productVariantRepository = productVariantRepository;
     }
 
     @Override
@@ -68,9 +72,11 @@ public class SizeServiceImp implements SizeService {
     @Transactional
     public ResponseMessageDTO delete(Long id) {
         checkSizeExistsById(id);
+        checkSizeNotInUse(id);
         sizeRepository.deleteById(id);
         return new ResponseMessageDTO(HttpStatus.OK, "Size deleted successfully");
     }
+
     // hàm
     private Size checkSizeById(Long sizeId) {
         return sizeRepository.findById(sizeId).orElseThrow(() -> new IllegalArgumentException("Size not found!"));
@@ -78,20 +84,27 @@ public class SizeServiceImp implements SizeService {
 
     private void checkSizeExistsByName(String name) {
         if (sizeRepository.existsByName(name)) {
-            throw new IllegalArgumentException("Size "+  name +"already exists!");
+            throw new IllegalArgumentException("Size " + name + "already exists!");
         }
     }
 
     private void checkSizeNameExistsForUpdate(String sizeName, Long sizeId) {
         if (sizeRepository.existsByNameAndIdNot(sizeName, sizeId)) {
-            throw new IllegalArgumentException("Size " + sizeName+ " already exists!");
+            throw new IllegalArgumentException("Size " + sizeName + " already exists!");
         }
     }
 
-
-    private void checkSizeExistsById (Long sizeId) {
+    private void checkSizeExistsById(Long sizeId) {
         if (!sizeRepository.existsById(sizeId)) {
             throw new IllegalArgumentException("Size " + sizeId + " already exists!");
+        }
+    }
+
+    private void checkSizeNotInUse(Long sizeId) {
+        if (productVariantRepository.existsBySizeId(sizeId)) {
+            long productCount = productVariantRepository.countProductsBySizeId(sizeId);
+            throw new IllegalArgumentException("Không thể xóa kích thước này vì đang có " + productCount
+                    + " sản phẩm sử dụng. Vui lòng xóa các sản phẩm liên quan trước.");
         }
     }
 }

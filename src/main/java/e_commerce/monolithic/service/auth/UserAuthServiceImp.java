@@ -1,29 +1,31 @@
 package e_commerce.monolithic.service.auth;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import e_commerce.monolithic.dto.auth.AdminLoginDTO;
-import e_commerce.monolithic.entity.Authority;
-import e_commerce.monolithic.exeption.NotFoundException;
-import e_commerce.monolithic.exeption.AuthenticationFailedException;
-import e_commerce.monolithic.mapper.UserMapper;
-import e_commerce.monolithic.repository.AuthorityRepository;
-import e_commerce.monolithic.service.admin.AuthorityServiceImp;
-import e_commerce.monolithic.service.common.UserValidationService;
-import jakarta.persistence.EntityNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import e_commerce.monolithic.dto.auth.AdminLoginDTO;
+import e_commerce.monolithic.dto.auth.AdminLoginResponseDTO;
 import e_commerce.monolithic.dto.auth.UserLoginDTO;
+import e_commerce.monolithic.dto.auth.UserLoginResponseDTO;
 import e_commerce.monolithic.dto.auth.UserRegisterDTO;
+import e_commerce.monolithic.entity.Authority;
 import e_commerce.monolithic.entity.User;
+import e_commerce.monolithic.exeption.AuthenticationFailedException;
+import e_commerce.monolithic.mapper.UserMapper;
+import e_commerce.monolithic.repository.AuthorityRepository;
 import e_commerce.monolithic.repository.UserRepository;
 import e_commerce.monolithic.security.JwtUtil;
+import e_commerce.monolithic.service.common.UserValidationService;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Service
 public class UserAuthServiceImp implements UserAuthService {
@@ -49,7 +51,7 @@ public class UserAuthServiceImp implements UserAuthService {
 
     @Override
     @Transactional
-    public String login(UserLoginDTO userLoginDTO) {
+    public UserLoginResponseDTO login(UserLoginDTO userLoginDTO) {
         User user = userValidationService.findByUsername(userLoginDTO.getUsername())
                 .orElseThrow(() -> {
                     logger.error("User not found with username: " + userLoginDTO.getUsername());
@@ -59,16 +61,25 @@ public class UserAuthServiceImp implements UserAuthService {
         validatePasswordInvalid(userLoginDTO.getPassword(), user);
         validateEnabled(user);
 
-        return jwtUtil.generateToken(user.getUsername());
+        // Lấy danh sách roles của user
+        List<String> roles = user.getAuthorities().stream()
+                .map(Authority::getAuthority)
+                .collect(Collectors.toList());
+
+        // Tạo token với cả username và roles
+        String token = jwtUtil.generateToken(user.getUsername(), roles);
+
+        // Trả về DTO chứa token, username và roles
+        return new UserLoginResponseDTO(token, user.getUsername(), roles);
     }
 
     @Override
     @Transactional
-    public String loginAdmin(AdminLoginDTO adminLoginDTO) {
+    public AdminLoginResponseDTO loginAdmin(AdminLoginDTO adminLoginDTO) {
         // Tìm user, nếu không tồn tại thì ném AuthenticationFailedException
         Optional<User> userOptional = userValidationService.findByUsername(adminLoginDTO.getUsername());
         if (userOptional.isEmpty()) {
-            throw new AuthenticationFailedException();
+            throw new AuthenticationFailedException("Username or password is incorrect");
         }
 
         User user = userOptional.get();
@@ -77,14 +88,23 @@ public class UserAuthServiceImp implements UserAuthService {
         try {
             validatePasswordInvalid(adminLoginDTO.getPassword(), user);
         } catch (IllegalArgumentException e) {
-            throw new AuthenticationFailedException();
+            throw new AuthenticationFailedException("Username or password is incorrect");
         }
 
         // Validate other conditions
         checkIsAdmin(user);
         validateEnabled(user);
 
-        return jwtUtil.generateToken(user.getUsername());
+        // Lấy danh sách roles của user
+        List<String> roles = user.getAuthorities().stream()
+                .map(Authority::getAuthority)
+                .collect(Collectors.toList());
+
+        // Tạo token với cả username và roles
+        String token = jwtUtil.generateToken(user.getUsername(), roles);
+
+        // Trả về DTO chứa token, username, message và roles
+        return new AdminLoginResponseDTO(token, user.getUsername(), "Login successful", roles);
     }
 
     private void validateEnabled(User user) {

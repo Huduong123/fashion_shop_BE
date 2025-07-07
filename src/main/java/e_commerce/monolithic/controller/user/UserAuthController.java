@@ -1,6 +1,7 @@
 package e_commerce.monolithic.controller.user;
 
 import e_commerce.monolithic.dto.auth.UserLoginDTO;
+import e_commerce.monolithic.dto.auth.UserLoginResponseDTO;
 import e_commerce.monolithic.dto.auth.UserRegisterDTO;
 import e_commerce.monolithic.dto.auth.UserReponseDTO;
 import e_commerce.monolithic.entity.User;
@@ -30,8 +31,8 @@ public class UserAuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> loginUser(@RequestBody @Valid UserLoginDTO userLoginDTO) {
-        String token = userAuthService.login(userLoginDTO);
-        return ResponseEntity.ok().body("Bearer " + token);
+    public ResponseEntity<UserLoginResponseDTO> loginUser(@RequestBody @Valid UserLoginDTO userLoginDTO) {
+        UserLoginResponseDTO response = userAuthService.login(userLoginDTO);
+        return ResponseEntity.ok(response);
     }
 }

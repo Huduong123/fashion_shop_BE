@@ -6,6 +6,7 @@ import e_commerce.monolithic.dto.admin.product.ProductUpdateDTO;
 import e_commerce.monolithic.entity.Category;
 import e_commerce.monolithic.entity.Product;
 import e_commerce.monolithic.entity.ProductVariant;
+import e_commerce.monolithic.repository.ProductRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.HashSet;
@@ -15,9 +16,11 @@ import java.util.stream.Collectors;
 public class ProductMapper {
 
     private final ProductVariantMapper productVariantMapper;
+    private final ProductRepository productRepository;
 
-    public ProductMapper(ProductVariantMapper productVariantMapper) {
+    public ProductMapper(ProductVariantMapper productVariantMapper, ProductRepository productRepository) {
         this.productVariantMapper = productVariantMapper;
+        this.productRepository = productRepository;
     }
 
     public ProductResponseDTO convertToDTO(Product product) {
@@ -36,6 +39,10 @@ public class ProductMapper {
                 .map(productVariantMapper::convertToDTO)
                 .collect(Collectors.toList());
 
+        // Check if product can be deleted (no reviews and no order items)
+        boolean canDelete = !productRepository.hasReviews(product.getId()) &&
+                !productRepository.hasOrderItems(product.getId());
+
         var responseDTO = new ProductResponseDTO();
         responseDTO.setId(product.getId());
         responseDTO.setName(product.getName());
@@ -46,6 +53,7 @@ public class ProductMapper {
         responseDTO.setCreatedAt(product.getCreatedAt());
         responseDTO.setUpdatedAt(product.getUpdatedAt());
         responseDTO.setProductVariants(productVariants);
+        responseDTO.setCanDelete(canDelete);
 
         return responseDTO;
     }

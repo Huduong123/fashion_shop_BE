@@ -232,6 +232,7 @@ public class ProductServiceImp implements ProductService {
                     existingVariant.setPrice(dto.getPrice());
                     existingVariant.setQuantity(dto.getQuantity());
                     existingVariant.setImageUrl(dto.getImageUrl());
+                    existingVariant.setStatus(dto.getStatus());
                 }
 
                 finalVariants.add(existingVariant); // Thêm biến thể (dù có sửa hay không) vào danh sách cuối cùng
@@ -283,7 +284,10 @@ public class ProductServiceImp implements ProductService {
         if (variant.getQuantity() != dto.getQuantity())
             return true;
         // So sánh imageUrl, cần xử lý null
-        return !java.util.Objects.equals(variant.getImageUrl(), dto.getImageUrl());
+        if (!java.util.Objects.equals(variant.getImageUrl(), dto.getImageUrl()))
+            return true;
+        // So sánh status, cần xử lý null
+        return !java.util.Objects.equals(variant.getStatus(), dto.getStatus());
     }
 
     // hàm check exist

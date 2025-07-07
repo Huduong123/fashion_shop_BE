@@ -9,17 +9,14 @@ import java.util.Set;
 
 @Entity
 @Table(name = "products")
-@NamedEntityGraph(
-        name = "Product.withVariants",
-        attributeNodes = @NamedAttributeNode("productVariants")
-)
+@NamedEntityGraph(name = "Product.withVariants", attributeNodes = @NamedAttributeNode("productVariants"))
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = {"category", "productVariants"})
-public class Product  extends  BaseEntity{
+@ToString(exclude = { "category", "productVariants", "reviews" })
+public class Product extends BaseEntity {
 
     @Column(name = "name", nullable = false, length = 255)
     private String name;
@@ -34,9 +31,10 @@ public class Product  extends  BaseEntity{
     @JoinColumn(name = "category_id")
     private Category category;
 
-    @OneToMany(mappedBy = "product",
-    cascade = CascadeType.ALL,orphanRemoval = true,
-    fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<ProductVariant> productVariants = new HashSet<>();
+
+    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
+    private Set<Review> reviews = new HashSet<>();
 
 }

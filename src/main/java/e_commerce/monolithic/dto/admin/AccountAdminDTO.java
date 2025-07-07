@@ -1,11 +1,13 @@
 package e_commerce.monolithic.dto.admin;
 
+import e_commerce.monolithic.dto.admin.authorities.AuthorityDTO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -18,6 +20,8 @@ public class AccountAdminDTO {
     private String phone;
     private String gender;
     private LocalDate birthday;
-    private LocalDateTime createAt;
-    private LocalDateTime updateAt;
+    private boolean enabled;
+    private List<AuthorityDTO> authorities;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

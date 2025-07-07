@@ -1,9 +1,9 @@
 package e_commerce.monolithic.mapper;
 
-
 import e_commerce.monolithic.dto.admin.AccountAdminDTO;
 import e_commerce.monolithic.dto.admin.AccountCreateAdminDTO;
 import e_commerce.monolithic.dto.admin.AccountUpdateAdminDTO;
+import e_commerce.monolithic.dto.admin.authorities.AuthorityDTO;
 import e_commerce.monolithic.dto.auth.UserRegisterDTO;
 import e_commerce.monolithic.dto.auth.UserReponseDTO;
 import e_commerce.monolithic.dto.user.UserProfileDTO;
@@ -14,14 +14,15 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
 public class UserMapper {
 
-    public UserReponseDTO converToDTO (User user) {
-        Set<String > roles = user.getAuthorities().stream()
+    public UserReponseDTO converToDTO(User user) {
+        Set<String> roles = user.getAuthorities().stream()
                 .map(Authority::getAuthority)
                 .collect(Collectors.toSet());
         return new UserReponseDTO(
@@ -34,11 +35,10 @@ public class UserMapper {
                 user.getBirthDate(),
                 user.isEnabled(),
                 user.getCreatedAt(),
-                roles
-        );
+                roles);
     }
 
-    public User convertToEntity (UserRegisterDTO dto, Set<Authority> authorities, String endcodedPassword) {
+    public User convertToEntity(UserRegisterDTO dto, Set<Authority> authorities, String endcodedPassword) {
         User user = new User();
         user.setUsername(dto.getUsername());
         user.setPassword(endcodedPassword);
@@ -52,8 +52,7 @@ public class UserMapper {
 
     }
 
-
-    public UserProfileDTO convertToUserProfileDTO (User user) {
+    public UserProfileDTO convertToUserProfileDTO(User user) {
         return new UserProfileDTO(
                 user.getId(),
                 user.getUsername(),
@@ -61,11 +60,10 @@ public class UserMapper {
                 user.getFullname(),
                 user.getPhone(),
                 user.getGender(),
-                user.getBirthDate()
-        );
+                user.getBirthDate());
     }
 
-    public void updateUserFromDTO (User user, UserUpdateProfileDTO userUpdateProfileDTO) {
+    public void updateUserFromDTO(User user, UserUpdateProfileDTO userUpdateProfileDTO) {
         if (userUpdateProfileDTO.getEmail() != null) {
             user.setEmail(userUpdateProfileDTO.getEmail());
         }
@@ -84,8 +82,13 @@ public class UserMapper {
 
     }
 
-    // ACcount
-    public AccountAdminDTO convertToAdminDTO (User user) {
+    // Account
+    public AccountAdminDTO convertToAdminDTO(User user) {
+        // Convert authorities to AuthorityDTO list
+        List<AuthorityDTO> authorityDTOs = user.getAuthorities().stream()
+                .map(authority -> new AuthorityDTO(authority.getId(), authority.getAuthority()))
+                .collect(Collectors.toList());
+
         return new AccountAdminDTO(
                 user.getId(),
                 user.getUsername(),
@@ -93,13 +96,14 @@ public class UserMapper {
                 user.getFullname(),
                 user.getPhone(),
                 user.getGender(),
-                user.getBirthDate(),
+                user.getBirthDate(), // birthDate from entity maps to birthday in DTO
+                user.isEnabled(),
+                authorityDTOs,
                 user.getCreatedAt(),
-                user.getUpdatedAt()
-        );
+                user.getUpdatedAt());
     }
 
-    public void updateAccountFromDTO (User user, AccountUpdateAdminDTO  accountUpdateAdminDTO) {
+    public void updateAccountFromDTO(User user, AccountUpdateAdminDTO accountUpdateAdminDTO) {
         if (accountUpdateAdminDTO.getEmail() != null) {
             user.setEmail(accountUpdateAdminDTO.getEmail());
         }

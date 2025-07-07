@@ -20,14 +20,16 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    private final  JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,  JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint) {
+
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+            JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
     }
 
-    private static final String [] PUBLIC_ENDPOINTS = {
+    private static final String[] PUBLIC_ENDPOINTS = {
             "/api/users/login",
             "/api/users/register",
             "/api/admin/login",
@@ -42,11 +44,19 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable()) // Tắt CSRF vì chúng ta sử dụng JWT (stateless)
                 .cors(Customizer.withDefaults()) // Kích hoạt CORS (sử dụng cấu hình từ bean corsConfigurationSource)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Sử dụng phiên làm việc stateless cho JWT
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Sử dụng
+                                                                                                              // phiên
+                                                                                                              // làm
+                                                                                                              // việc
+                                                                                                              // stateless
+                                                                                                              // cho JWT
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(PUBLIC_ENDPOINTS).permitAll() // Cho phép truy cập công khai đến các endpoint này
+                        .requestMatchers(PUBLIC_ENDPOINTS).permitAll() // Cho phép truy cập công khai đến các endpoint
+                                                                       // này
 
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN") // Chỉ ADMIN mới có quyền truy cập các đường dẫn này
+                        .requestMatchers("/api/admin/accounts/**").hasRole("SYSTEM") // Chỉ SYSTEM mới truy cập được
+                                                                                     // quản lý account
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN") // ADMIN cho các endpoint admin khác
                         // Ví dụ: Người dùng hoặc admin đều có thể xem/cập nhật profile của họ
                         .requestMatchers("/api/user/profile/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/users/cart/**").hasAnyRole("USER", "ADMIN")
@@ -54,10 +64,18 @@ public class SecurityConfig {
                         .anyRequest().authenticated() // Tất cả các request khác yêu cầu xác thực
                 )
                 .exceptionHandling(exceptions -> exceptions
-                                .authenticationEntryPoint(jwtAuthenticationEntryPoint) // Xử lý các lỗi xác thực (ví dụ: thiếu token, token không hợp lệ)
-                        // .accessDeniedHandler(new CustomAccessDeniedHandler()) // Tùy chọn: Thêm AccessDeniedHandler để xử lý các lỗi ủy quyền (người dùng xác thực nhưng không có quyền)
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint) // Xử lý các lỗi xác thực (ví dụ: thiếu
+                                                                               // token, token không hợp lệ)
+                // .accessDeniedHandler(new CustomAccessDeniedHandler()) // Tùy chọn: Thêm
+                // AccessDeniedHandler để xử lý các lỗi ủy quyền (người dùng xác thực nhưng
+                // không có quyền)
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // Thêm JWT filter trước filter mặc định của Spring Security
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // Thêm JWT
+                                                                                                       // filter trước
+                                                                                                       // filter mặc
+                                                                                                       // định của
+                                                                                                       // Spring
+                                                                                                       // Security
 
         return http.build();
     }
@@ -67,14 +85,35 @@ public class SecurityConfig {
             throws Exception {
         return configuration.getAuthenticationManager();
     }
+
     // Cấu hình CORS toàn cục
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Cần thay thế "*" bằng các origin cụ thể của frontend trong môi trường production
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:8080", "http://your-frontend-domain.com", "http://localhost:5173")); // Cho phép từ các origin cụ thể, hoặc Arrays.asList("*") cho tất cả (chỉ dev)
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS")); // Các phương thức HTTP được cho phép
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept")); // Các header được cho phép
+        // Cần thay thế "*" bằng các origin cụ thể của frontend trong môi trường
+        // production
+        configuration.setAllowedOrigins(
+                Arrays.asList("http://localhost:8080", "http://your-frontend-domain.com", "http://localhost:5173")); // Cho
+                                                                                                                     // phép
+                                                                                                                     // từ
+                                                                                                                     // các
+                                                                                                                     // origin
+                                                                                                                     // cụ
+                                                                                                                     // thể,
+                                                                                                                     // hoặc
+                                                                                                                     // Arrays.asList("*")
+                                                                                                                     // cho
+                                                                                                                     // tất
+                                                                                                                     // cả
+                                                                                                                     // (chỉ
+                                                                                                                     // dev)
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")); // Các
+                                                                                                            // phương
+                                                                                                            // thức HTTP
+                                                                                                            // được cho
+                                                                                                            // phép
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept")); // Các header được
+                                                                                                   // cho phép
         configuration.setAllowCredentials(true); // Cho phép gửi cookie hoặc HTTP authentication (nếu có)
         configuration.setMaxAge(3600L); // Thời gian cache cho pre-flight request
 

@@ -1,6 +1,5 @@
 package e_commerce.monolithic.dto.admin;
 
-
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
@@ -32,5 +31,9 @@ public class AccountUpdateAdminDTO {
     @JsonProperty("birth_day")
     @JsonFormat(pattern = "dd/MM/yyyy")
     private LocalDate birthday;
+    // Password is optional - only update if provided
+    @Size(min = 6, message = "Password phải trên 5 ký tự")
+    @Pattern(regexp = "^$|^[A-Z][^\\s]*[!@#$%^&*(),.?\":{}|<>]+[^\\s]*$", message = "Password phải bắt đầu bằng chữ hoa, có ít nhất 1 ký tự đặc biệt và không chứa khoảng trắng (hoặc để trống để không thay đổi)")
+    private String password;
     private boolean enabled;
 }

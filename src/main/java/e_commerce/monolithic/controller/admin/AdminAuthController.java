@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -35,12 +36,7 @@ public class AdminAuthController {
     @PostMapping("/login")
     public ResponseEntity<AdminLoginResponseDTO> loginAdmin(@RequestBody @Valid AdminLoginDTO adminLoginDTO) {
         try {
-            String token = userAuthService.loginAdmin(adminLoginDTO);
-
-            AdminLoginResponseDTO response = new AdminLoginResponseDTO(
-                    token,
-                    adminLoginDTO.getUsername(),
-                    "Login successful");
+            AdminLoginResponseDTO response = userAuthService.loginAdmin(adminLoginDTO);
 
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -49,43 +45,41 @@ public class AdminAuthController {
     }
 
     @GetMapping("/verify-token")
+    // <<< SỬA ĐỔI ĐỂ TRẢ VỀ CẢ ROLES
     public ResponseEntity<?> verifyToken(HttpServletRequest request) {
         try {
             String authHeader = request.getHeader("Authorization");
             String token = null;
 
-            if (authHeader != null && !authHeader.trim().isEmpty()) {
-                // Support both raw JWT token and Bearer format for backward compatibility
-                if (authHeader.startsWith("Bearer ")) {
-                    token = authHeader.substring(7);
-                } else {
-                    token = authHeader;
-                }
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                token = authHeader.substring(7);
+            } else if (authHeader != null) {
+                token = authHeader;
+            }
 
-                // Validate token using JwtUtil
-                if (jwtUtil.validateToken(token)) {
-                    String username = jwtUtil.extractUsername(token);
+            if (token != null && jwtUtil.validateToken(token)) {
+                String username = jwtUtil.extractUsername(token);
+                // Lấy roles từ token
+                List<String> roles = jwtUtil.extractRoles(token);
 
-                    Map<String, Object> response = new HashMap<>();
-                    response.put("valid", true);
-                    response.put("username", username);
-                    response.put("message", "Token is valid");
+                Map<String, Object> response = new HashMap<>();
+                response.put("valid", true);
+                response.put("username", username);
+                response.put("roles", roles); // Thêm roles vào response
+                response.put("message", "Token is valid");
 
-                    return ResponseEntity.ok(response);
-                }
+                return ResponseEntity.ok(response);
             }
 
             Map<String, Object> response = new HashMap<>();
             response.put("valid", false);
             response.put("message", "Invalid or expired token");
-
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
 
         } catch (Exception e) {
             Map<String, Object> response = new HashMap<>();
             response.put("valid", false);
-            response.put("message", "Token verification failed");
-
+            response.put("message", "Token verification failed: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         }
     }

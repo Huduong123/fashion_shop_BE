@@ -1,12 +1,12 @@
 package e_commerce.monolithic.service.admin;
 
-import e_commerce.monolithic.dto.admin.AccountAdminDTO;
-import e_commerce.monolithic.dto.admin.AccountCreateAdminDTO;
-import e_commerce.monolithic.dto.admin.AccountUpdateAdminDTO;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+
+import e_commerce.monolithic.dto.admin.AccountAdminDTO;
+import e_commerce.monolithic.dto.admin.AccountCreateAdminDTO;
+import e_commerce.monolithic.dto.admin.AccountUpdateAdminDTO;
 
 public interface AccountService {
     List<AccountAdminDTO> getAllAccount();
@@ -27,9 +27,15 @@ public interface AccountService {
             String gender,
             LocalDate birthday,
             Boolean enabled,
+            String role,
             LocalDateTime createdAtStart,
             LocalDateTime createdAtEnd,
             LocalDateTime updatedAtStart,
-            LocalDateTime updatedAtEnd
-    );
+            LocalDateTime updatedAtEnd);
+
+    AccountAdminDTO toggleAccountStatus(Long accountId, Boolean enabled);
+
+    AccountAdminDTO addRoleToUser(Long userId, String roleName);
+
+    AccountAdminDTO removeRoleFromUser(Long userId, String roleName);
 }

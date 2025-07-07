@@ -5,10 +5,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 public class AuthorityDTO {
     private Long id;
-    private String authority;
-    private String username;
+    private String name;
+    
+    public AuthorityDTO(String name) {
+        this.name = name;
+    }
 }

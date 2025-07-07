@@ -16,7 +16,9 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
+// NOTE: Chỉ tài khoản có ROLE_SYSTEM mới truy cập được các API này (xem SecurityConfig)
 @RestController
 @RequestMapping("/api/admin/accounts")
 public class AccountController {
@@ -32,29 +34,36 @@ public class AccountController {
         List<AccountAdminDTO> accounts = accountService.getAllAccount();
         return ResponseEntity.ok(accounts);
     }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getAccountById(@PathVariable Long id) {
         try {
             AccountAdminDTO account = accountService.getAccountById(id);
             return ResponseEntity.ok(account);
-        }catch (NotFoundException e){
-            return new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.NOT_FOUND, e.getMessage()), HttpStatus.NOT_FOUND);
-        }catch (Exception e){
-            return new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occcurred"), HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (NotFoundException e) {
+            return new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.NOT_FOUND, e.getMessage()),
+                    HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            return new ResponseEntity<>(
+                    new ResponseMessageDTO(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occcurred"),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> createAccount(@RequestBody @Valid AccountCreateAdminDTO  accountCreateAdminDTO) {
+    public ResponseEntity<?> createAccount(@RequestBody @Valid AccountCreateAdminDTO accountCreateAdminDTO) {
         try {
             AccountAdminDTO createdAccount = accountService.createAccount(accountCreateAdminDTO);
             return new ResponseEntity<>(createdAccount, HttpStatus.CREATED);
-        }catch (IllegalArgumentException e){
-            return new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.BAD_REQUEST, e.getMessage()), HttpStatus.BAD_REQUEST);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.BAD_REQUEST, e.getMessage()),
+                    HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
-            return  new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred."), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(
+                    new ResponseMessageDTO(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred."),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -64,47 +73,130 @@ public class AccountController {
         try {
             AccountAdminDTO updatedAccount = accountService.updateAccount(accountUpdateAdminDTO);
             return new ResponseEntity<>(updatedAccount, HttpStatus.OK);
-        }catch (NotFoundException e) {
-            return new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.NOT_FOUND, e.getMessage()), HttpStatus.NOT_FOUND);
-        }catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.BAD_REQUEST, e.getMessage()), HttpStatus.BAD_REQUEST);
+        } catch (NotFoundException e) {
+            return new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.NOT_FOUND, e.getMessage()),
+                    HttpStatus.NOT_FOUND);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.BAD_REQUEST, e.getMessage()),
+                    HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
-            return new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred."), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(
+                    new ResponseMessageDTO(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred."),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ResponseMessageDTO> deleteAccount (@PathVariable Long id) {
+    public ResponseEntity<ResponseMessageDTO> deleteAccount(@PathVariable Long id) {
         try {
             accountService.deleteAccount(id);
-            return  new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.OK, "Account with id "+id+" delete successfully"), HttpStatus.OK);
-        }catch (NotFoundException e){
-            return new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.NOT_FOUND, e.getMessage()), HttpStatus.NOT_FOUND);
-        } catch (IllegalArgumentException e){
-            return new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.BAD_REQUEST, e.getMessage()), HttpStatus.BAD_REQUEST);
-        } catch (Exception e){
-            return new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred."), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(
+                    new ResponseMessageDTO(HttpStatus.OK, "Account with id " + id + " delete successfully"),
+                    HttpStatus.OK);
+        } catch (NotFoundException e) {
+            return new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.NOT_FOUND, e.getMessage()),
+                    HttpStatus.NOT_FOUND);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.BAD_REQUEST, e.getMessage()),
+                    HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            return new ResponseEntity<>(
+                    new ResponseMessageDTO(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred."),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> toggleAccountStatus(@PathVariable Long id, @RequestBody Map<String, Boolean> request) {
+        try {
+            Boolean enabled = request.get("enabled");
+            if (enabled == null) {
+                return new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.BAD_REQUEST, "Missing 'enabled' field"),
+                        HttpStatus.BAD_REQUEST);
+            }
+
+            AccountAdminDTO updatedAccount = accountService.toggleAccountStatus(id, enabled);
+            return ResponseEntity.ok(updatedAccount);
+        } catch (NotFoundException e) {
+            return new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.NOT_FOUND, e.getMessage()),
+                    HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            return new ResponseEntity<>(
+                    new ResponseMessageDTO(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred"),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @GetMapping("/search")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<AccountAdminDTO>>  searchAccounts(
+    public ResponseEntity<List<AccountAdminDTO>> searchAccounts(
             @RequestParam(required = false) String username,
             @RequestParam(required = false) String email,
             @RequestParam(required = false) String fullname,
             @RequestParam(required = false) String phone,
             @RequestParam(required = false) String gender,
-            @RequestParam(required = false) @DateTimeFormat(pattern = "dd/MM/yyyy")LocalDate birthday,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "dd/MM/yyyy") LocalDate birthday,
             @RequestParam(required = false) Boolean enabled,
-            @RequestParam(required = false) @DateTimeFormat(iso=DateTimeFormat.ISO.DATE_TIME)LocalDateTime createAtStart,
-            @RequestParam(required = false) @DateTimeFormat(iso=DateTimeFormat.ISO.DATE_TIME)LocalDateTime createAtEnd,
-            @RequestParam(required = false) @DateTimeFormat(iso=DateTimeFormat.ISO.DATE_TIME) LocalDateTime updateAtStart,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime updateAtEnd
-            ){
-        List<AccountAdminDTO> accounts = accountService.searchAccounts(username,email,fullname,phone, gender, birthday, enabled,createAtStart,createAtEnd,updateAtStart,updateAtEnd);
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createAtStart,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime createAtEnd,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime updateAtStart,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime updateAtEnd) {
+        List<AccountAdminDTO> accounts = accountService.searchAccounts(username, email, fullname, phone, gender,
+                birthday, enabled, role, createAtStart, createAtEnd, updateAtStart, updateAtEnd);
         return ResponseEntity.ok(accounts);
+    }
+
+    @PostMapping("/{id}/roles")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> addRoleToUser(@PathVariable Long id, @RequestBody Map<String, String> request) {
+        try {
+            String roleName = request.get("roleName");
+            if (roleName == null || roleName.trim().isEmpty()) {
+                return new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.BAD_REQUEST, "Missing 'roleName' field"),
+                        HttpStatus.BAD_REQUEST);
+            }
+
+            AccountAdminDTO updatedAccount = accountService.addRoleToUser(id, roleName.trim());
+            return ResponseEntity.ok(updatedAccount);
+        } catch (NotFoundException e) {
+            return new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.NOT_FOUND, e.getMessage()),
+                    HttpStatus.NOT_FOUND);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.BAD_REQUEST, e.getMessage()),
+                    HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            return new ResponseEntity<>(
+                    new ResponseMessageDTO(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred"),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @DeleteMapping("/{id}/roles/{roleName}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> removeRoleFromUser(@PathVariable Long id, @PathVariable String roleName) {
+        try {
+            if (roleName == null || roleName.trim().isEmpty()) {
+                return new ResponseEntity<>(
+                        new ResponseMessageDTO(HttpStatus.BAD_REQUEST, "Missing 'roleName' parameter"),
+                        HttpStatus.BAD_REQUEST);
+            }
+
+            AccountAdminDTO updatedAccount = accountService.removeRoleFromUser(id, roleName.trim());
+            return ResponseEntity.ok(updatedAccount);
+        } catch (NotFoundException e) {
+            return new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.NOT_FOUND, e.getMessage()),
+                    HttpStatus.NOT_FOUND);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(new ResponseMessageDTO(HttpStatus.BAD_REQUEST, e.getMessage()),
+                    HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            return new ResponseEntity<>(
+                    new ResponseMessageDTO(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred"),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
 }

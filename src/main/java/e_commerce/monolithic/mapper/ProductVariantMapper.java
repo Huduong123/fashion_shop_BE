@@ -6,6 +6,7 @@ import e_commerce.monolithic.dto.admin.product.ProductVariantUpdateDTO;
 import e_commerce.monolithic.entity.Color;
 import e_commerce.monolithic.entity.ProductVariant;
 import e_commerce.monolithic.entity.Size;
+import e_commerce.monolithic.entity.enums.ProductVariantStatus;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -20,7 +21,8 @@ public class ProductVariantMapper {
         productVariantResponseDTO.setPrice(productVariant.getPrice());
         productVariantResponseDTO.setQuantity(productVariant.getQuantity());
         productVariantResponseDTO.setImageUrl(productVariant.getImageUrl());
-        if(productVariant.getColor() != null) {
+        productVariantResponseDTO.setStatus(productVariant.getStatus());
+        if (productVariant.getColor() != null) {
             productVariantResponseDTO.setColorId(productVariant.getColor().getId());
             productVariantResponseDTO.setColorName(productVariant.getColor().getName());
         }
@@ -31,7 +33,8 @@ public class ProductVariantMapper {
         return productVariantResponseDTO;
     }
 
-    public ProductVariant convertCreateDtoToEntity(ProductVariantCreateDTO productVariantCreateDTO, Color color, Size size) {
+    public ProductVariant convertCreateDtoToEntity(ProductVariantCreateDTO productVariantCreateDTO, Color color,
+            Size size) {
         if (productVariantCreateDTO == null) {
             return null;
         }
@@ -42,6 +45,8 @@ public class ProductVariantMapper {
                 .price(productVariantCreateDTO.getPrice())
                 .quantity(productVariantCreateDTO.getQuantity())
                 .imageUrl(productVariantCreateDTO.getImageUrl())
+                .status(productVariantCreateDTO.getStatus() != null ? productVariantCreateDTO.getStatus()
+                        : ProductVariantStatus.ACTIVE)
                 .build();
     }
 
@@ -55,6 +60,7 @@ public class ProductVariantMapper {
                 .price(dto.getPrice())
                 .quantity(dto.getQuantity())
                 .imageUrl(dto.getImageUrl())
+                .status(dto.getStatus() != null ? dto.getStatus() : ProductVariantStatus.ACTIVE)
                 .build();
     }
 }

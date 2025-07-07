@@ -33,4 +33,12 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     @EntityGraph(value = "Product.withVariants")
     @Query("SELECT p FROM Product p WHERE p.id = :id")
     Optional<Product> findByIdWithVariants(@Param("id") Long id);
+
+    // Check if product has reviews
+    @Query("SELECT COUNT(r) > 0 FROM Product p JOIN p.reviews r WHERE p.id = :productId")
+    boolean hasReviews(@Param("productId") Long productId);
+
+    // Check if product has order items through its variants
+    @Query("SELECT COUNT(oi) > 0 FROM Product p JOIN p.productVariants pv JOIN pv.orderItems oi WHERE p.id = :productId")
+    boolean hasOrderItems(@Param("productId") Long productId);
 }

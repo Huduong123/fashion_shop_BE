@@ -16,10 +16,10 @@ public class ProductResponseDTO {
     private Long id;
     private String name;
     private String description;
-//    private BigDecimal price;
-//    private int quantity;
-//
-//    private String imageUrl;
+    // private BigDecimal price;
+    // private int quantity;
+    //
+    // private String imageUrl;
 
     private Boolean enabled;
 
@@ -30,4 +30,6 @@ public class ProductResponseDTO {
     private LocalDateTime updatedAt;
 
     private List<ProductVariantResponseDTO> productVariants;
+
+    private Boolean canDelete;
 }

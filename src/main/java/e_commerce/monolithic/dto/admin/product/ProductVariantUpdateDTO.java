@@ -2,6 +2,7 @@ package e_commerce.monolithic.dto.admin.product;
 
 import java.math.BigDecimal;
 
+import e_commerce.monolithic.entity.enums.ProductVariantStatus;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -31,5 +32,7 @@ public class ProductVariantUpdateDTO {
     private Integer quantity;
 
     private String imageUrl;
+
+    private ProductVariantStatus status;
 
 }

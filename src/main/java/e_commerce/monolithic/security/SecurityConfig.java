@@ -34,7 +34,7 @@ public class SecurityConfig {
             "/api/users/register",
             "/api/admin/login",
             "/api/users/products/**",
-            "/api/users/categories/**",
+            "/api/users/categories/**", // Public endpoints cho user xem categories
             "/uploads/**",
 
     };
@@ -56,7 +56,8 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/admin/accounts/**").hasRole("SYSTEM") // Chỉ SYSTEM mới truy cập được
                                                                                      // quản lý account
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN") // ADMIN cho các endpoint admin khác
+                        .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "SYSTEM") // ADMIN và SYSTEM cho các
+                                                                                        // endpoint admin khác
                         // Ví dụ: Người dùng hoặc admin đều có thể xem/cập nhật profile của họ
                         .requestMatchers("/api/user/profile/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/users/cart/**").hasAnyRole("USER", "ADMIN")
@@ -93,7 +94,7 @@ public class SecurityConfig {
         // Cần thay thế "*" bằng các origin cụ thể của frontend trong môi trường
         // production
         configuration.setAllowedOrigins(
-                Arrays.asList("http://localhost:8080", "http://your-frontend-domain.com", "http://localhost:5173")); // Cho
+                Arrays.asList("http://localhost:8080", "http://your-frontend-domain.com", "http://localhost:5174")); // Cho
                                                                                                                      // phép
                                                                                                                      // từ
                                                                                                                      // các

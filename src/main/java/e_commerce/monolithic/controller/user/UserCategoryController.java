@@ -1,63 +1,63 @@
 package e_commerce.monolithic.controller.user;
 
 import e_commerce.monolithic.dto.admin.category.CategoryResponseDTO;
-import e_commerce.monolithic.dto.admin.product.ProductResponseDTO;
-import e_commerce.monolithic.service.user.UserCategoryService;
-import e_commerce.monolithic.service.user.UserProductService;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import e_commerce.monolithic.service.admin.CategoryService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/users/categories")
 public class UserCategoryController {
 
-    private final UserProductService userProductService;
-    private final UserCategoryService userCategoryService;
+    private final CategoryService categoryService;
 
-    public UserCategoryController(UserProductService userProductService, UserCategoryService userCategoryService) {
-        this.userProductService = userProductService;
-        this.userCategoryService = userCategoryService;
+    public UserCategoryController(CategoryService categoryService) {
+        this.categoryService = categoryService;
     }
 
     @GetMapping
-    public ResponseEntity<List<CategoryResponseDTO>> getAllCategories() {
-        List<CategoryResponseDTO> categoryResponseDTOS = userCategoryService.findAll();
-        return ResponseEntity.ok(categoryResponseDTOS);
+    public ResponseEntity<List<CategoryResponseDTO>> getAllCategories(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createdAt,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate updatedAt,
+            @RequestParam(required = false) Long parentId,
+            @RequestParam(required = false) Boolean isRoot) {
+
+        List<CategoryResponseDTO> categories = categoryService.findAll(name, createdAt, updatedAt, parentId, isRoot);
+        return ResponseEntity.ok(categories);
     }
 
-    @GetMapping("/{categoryId}/products")
-    public ResponseEntity<Page<ProductResponseDTO>> getProductsByCategory(
-            @PathVariable Long categoryId,
-            @RequestParam(required = false)BigDecimal minPrice,
-            @RequestParam(required = false) BigDecimal maxPrice,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "12") int size,
-            @RequestParam(defaultValue = "createdAt, desc") String[] sort
-            ){
-        List<Sort.Order> orders = new ArrayList<>();
-        if (sort.length > 0 && sort[0].contains(",")) {
-            for (String sortOrder : sort) {
-                String[] _sort = sortOrder.split(",");
-                Sort.Direction direction = _sort[1].equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
-                orders.add(new Sort.Order(direction, _sort[0]));
-            }
-        }else {
-            orders.add(new Sort.Order(Sort.Direction.DESC, "createdAt"));
-        }
+    @GetMapping("/root")
+    public ResponseEntity<List<CategoryResponseDTO>> getRootCategories() {
+        List<CategoryResponseDTO> rootCategories = categoryService.findRootCategories();
+        return ResponseEntity.ok(rootCategories);
+    }
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(orders));
+    @GetMapping("/hierarchy")
+    public ResponseEntity<List<CategoryResponseDTO>> getCategoryHierarchy() {
+        List<CategoryResponseDTO> hierarchy = categoryService.getCategoryHierarchy();
+        return ResponseEntity.ok(hierarchy);
+    }
 
-        Page<ProductResponseDTO> productResponseDTOS = userProductService.findAllVisibleProducts(null, minPrice,maxPrice,categoryId,pageable);
+    @GetMapping("/{parentId}/children")
+    public ResponseEntity<List<CategoryResponseDTO>> getChildrenByParentId(@PathVariable Long parentId) {
+        List<CategoryResponseDTO> children = categoryService.findChildrenByParentId(parentId);
+        return ResponseEntity.ok(children);
+    }
 
-        return ResponseEntity.ok(productResponseDTOS);
+    @GetMapping("/{id}")
+    public ResponseEntity<CategoryResponseDTO> getCategoryById(@PathVariable Long id) {
+        CategoryResponseDTO categoryResponseDTO = categoryService.findById(id);
+        return ResponseEntity.ok(categoryResponseDTO);
+    }
 
+    @GetMapping("/{id}/path")
+    public ResponseEntity<List<CategoryResponseDTO>> getCategoryPath(@PathVariable Long id) {
+        List<CategoryResponseDTO> path = categoryService.getCategoryPath(id);
+        return ResponseEntity.ok(path);
     }
 }

@@ -94,6 +94,13 @@ public class ProductServiceImp implements ProductService {
         // tìm categiry
         Category category = findCategoryById(productCreateDTO.getCategoryId());
 
+        // Validation: Chỉ cho phép tạo product cho category có type LINK
+        if (!category.canContainProducts()) {
+            throw new IllegalArgumentException("Không thể tạo sản phẩm cho danh mục '" + category.getName() +
+                    "' vì danh mục này có kiểu '" + category.getType().getDisplayName() + "'. " +
+                    "Chỉ có thể tạo sản phẩm cho danh mục có kiểu 'Liên kết'.");
+        }
+
         // chuyển DTO sang entity
         Product newProduct = productMapper.convertCreateDtoToEntity(productCreateDTO, category);
 
@@ -125,6 +132,13 @@ public class ProductServiceImp implements ProductService {
 
         // tìm danh mục theo categoryId
         Category category = findCategoryById(productUpdateDTO.getCategoryId());
+
+        // Validation: Chỉ cho phép update product cho category có type LINK
+        if (!category.canContainProducts()) {
+            throw new IllegalArgumentException("Không thể cập nhật sản phẩm cho danh mục '" + category.getName() +
+                    "' vì danh mục này có kiểu '" + category.getType().getDisplayName() + "'. " +
+                    "Chỉ có thể cập nhật sản phẩm cho danh mục có kiểu 'Liên kết'.");
+        }
 
         // chuyển DTO sang entiy
         productMapper.convertUpdateDtoToEntity(productUpdateDTO, existingProduct, category);

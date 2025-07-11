@@ -5,144 +5,289 @@ import e_commerce.monolithic.dto.admin.category.CategoryResponseDTO;
 import e_commerce.monolithic.dto.admin.category.CategoryUpdateDTO;
 import e_commerce.monolithic.dto.common.ResponseMessageDTO;
 import e_commerce.monolithic.entity.Category;
+import e_commerce.monolithic.entity.enums.CategoryType;
 import e_commerce.monolithic.exeption.NotFoundException;
 import e_commerce.monolithic.mapper.CategoryMapper;
 import e_commerce.monolithic.repository.CategoryRepository;
 import e_commerce.monolithic.specification.CategorySpecification;
-import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class CategoryServiceImp implements CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
     private final CategorySpecification categorySpecification;
 
-    public CategoryServiceImp(CategoryRepository categoryRepository, CategoryMapper categoryMapper, CategorySpecification categorySpecification) {
+    public CategoryServiceImp(CategoryRepository categoryRepository, CategoryMapper categoryMapper,
+            CategorySpecification categorySpecification) {
         this.categoryRepository = categoryRepository;
         this.categoryMapper = categoryMapper;
         this.categorySpecification = categorySpecification;
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<CategoryResponseDTO> findAll(String name, LocalDate createdAt, LocalDate updatedAt) {
+        return findAll(name, createdAt, updatedAt, null, null, null);
+    }
 
-        Specification<Category> spec = categorySpecification.findByCriteria(name, createdAt, updatedAt);
+    @Override
+    @Transactional(readOnly = true)
+    public List<CategoryResponseDTO> findAll(String name, LocalDate createdAt, LocalDate updatedAt, Long parentId,
+            Boolean isRoot) {
+        return findAll(name, createdAt, updatedAt, parentId, isRoot, null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CategoryResponseDTO> findAll(String name, LocalDate createdAt, LocalDate updatedAt, Long parentId,
+            Boolean isRoot, CategoryType type) {
+        Specification<Category> spec = categorySpecification.findByCriteria(name, createdAt, updatedAt, parentId,
+                isRoot, type);
 
         return categoryRepository.findAll(spec)
                 .stream()
-                .map(categoryMapper::convertToDTO)
+                .map(categoryMapper::convertToDTOWithoutChildren) // Avoid deep nesting in list view
                 .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<CategoryResponseDTO> findRootCategories() {
+        // Use existing method and convert with children count from DB
+        List<Category> rootCategories = categoryRepository.findByParentIsNull();
+
+        return rootCategories.stream()
+                .map(category -> {
+                    CategoryResponseDTO dto = categoryMapper.convertToDTOWithoutChildren(category);
+                    // Count actual children categories
+                    List<Category> children = categoryRepository.findByParentId(category.getId());
+                    dto.setChildrenCount(children.size());
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CategoryResponseDTO> findChildrenByParentId(Long parentId) {
+        List<Category> children = categoryRepository.findByParentId(parentId);
+
+        return children.stream()
+                .map(category -> {
+                    CategoryResponseDTO dto = categoryMapper.convertToDTOWithoutChildren(category);
+                    // Count children for each category
+                    List<Category> grandChildren = categoryRepository.findByParentId(category.getId());
+                    dto.setChildrenCount(grandChildren.size());
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public CategoryResponseDTO findById(Long categoryId) {
         Category category = findCategoryById(categoryId);
 
-        return categoryMapper.convertToDTO(category);
+        // Build DTO manually to avoid lazy loading issues
+        CategoryResponseDTO dto = categoryMapper.convertToDTOWithoutChildren(category);
+
+        // Count actual children categories
+        List<Category> children = categoryRepository.findByParentId(categoryId);
+        dto.setChildrenCount(children.size());
+
+        return dto;
     }
 
     @Override
     @Transactional
     public CategoryResponseDTO createCategory(CategoryCreateDTO categoryCreateDTO) {
+        // Validate parent if specified
+        Category parentCategory = null;
+        if (categoryCreateDTO.getParentId() != null) {
+            parentCategory = findCategoryById(categoryCreateDTO.getParentId());
 
-        // gọi hàm check lỗi
-        checkCategoryNameExistOnCreate(categoryCreateDTO.getName());
+            // Validate parent category type - LINK categories cannot have children
+            if (!parentCategory.canContainChildren()) {
+                throw new IllegalArgumentException(
+                        "Không thể tạo danh mục con cho danh mục '" + parentCategory.getName() +
+                                "' vì danh mục này có kiểu '" + parentCategory.getType().getDisplayName() + "'. " +
+                                "Chỉ có thể tạo danh mục con cho danh mục có kiểu 'Thư mục'.");
+            }
+        }
 
-        // chuyển đổi DTO sang Entity
+        // Check if category name exists within the same parent
+        checkCategoryNameExistOnCreate(categoryCreateDTO.getName(), categoryCreateDTO.getParentId());
+
+        // Convert DTO to Entity
         Category newCategory = categoryMapper.createDtoToEntity(categoryCreateDTO);
 
-        // lưu vào DB
+        // Set parent if specified
+        if (parentCategory != null) {
+            newCategory.setParent(parentCategory);
+        }
+
+        // Save to DB
         Category savedCategory = categoryRepository.save(newCategory);
 
-        // chuyển đổi entity đã lưu sang DTO trả về
-        return categoryMapper.convertToDTO(savedCategory);
+        // Return converted DTO using findById to get fresh data
+        return findById(savedCategory.getId());
     }
 
     @Override
     @Transactional
     public CategoryResponseDTO updateCategory(Long categoryId, CategoryUpdateDTO categoryUpdateDTO) {
-
         Category existingCategory = findCategoryById(categoryId);
 
-        // check lỗi trùng tên khi cập nhật
-        checkCategoryNameExistOnUpdate(categoryUpdateDTO.getName(), categoryId);
+        // Validate parent if specified
+        Category parentCategory = null;
+        if (categoryUpdateDTO.getParentId() != null) {
+            parentCategory = findCategoryById(categoryUpdateDTO.getParentId());
 
-        // chuyển DTO sang entity
-        categoryMapper.updateDtoToEntity(existingCategory,categoryUpdateDTO);
+            // Validate parent category type - LINK categories cannot have children
+            if (!parentCategory.canContainChildren()) {
+                throw new IllegalArgumentException("Không thể di chuyển danh mục vào '" + parentCategory.getName() +
+                        "' vì danh mục này có kiểu '" + parentCategory.getType().getDisplayName() + "'. " +
+                        "Chỉ có thể di chuyển danh mục vào danh mục có kiểu 'Thư mục'.");
+            }
 
-        // lưu
+            // Check for circular reference
+            checkCircularReference(categoryId, categoryUpdateDTO.getParentId());
+        }
+
+        // Check name uniqueness within the same parent
+        checkCategoryNameExistOnUpdate(categoryUpdateDTO.getName(), categoryId, categoryUpdateDTO.getParentId());
+
+        // Validate type change - cannot change to LINK if category has children
+        if (categoryUpdateDTO.getType() == CategoryType.LINK && categoryRepository.hasChildren(categoryId)) {
+            throw new IllegalArgumentException("Không thể thay đổi danh mục '" + existingCategory.getName() +
+                    "' sang kiểu 'Liên kết' vì danh mục này đang có danh mục con. " +
+                    "Vui lòng xóa tất cả danh mục con trước khi thay đổi kiểu.");
+        }
+
+        // Update basic fields
+        categoryMapper.updateDtoToEntity(existingCategory, categoryUpdateDTO);
+
+        // Update parent
+        existingCategory.setParent(parentCategory);
+
+        // Save
         Category savedCategory = categoryRepository.save(existingCategory);
 
-        // chuyển entity sang DTO
-        return categoryMapper.convertToDTO(savedCategory);
+        // Return converted DTO using findById to get fresh data
+        return findById(savedCategory.getId());
     }
 
     @Override
     @Transactional
     public ResponseMessageDTO deleteCategory(Long categoryId) {
+        Category categoryToDelete = findCategoryById(categoryId);
 
-        Category categoryDelete = findCategoryById(categoryId);
+        // Check if category can be deleted
+        if (!canDeleteCategory(categoryId)) {
+            throw new IllegalArgumentException("Không thể xóa danh mục '" + categoryToDelete.getName() +
+                    "' vì nó đang chứa sản phẩm hoặc có danh mục con");
+        }
 
-        // kiểm tra danh mục có được sử dụng
-        checkIfCategoryIsInUse(categoryDelete);
+        categoryRepository.delete(categoryToDelete);
 
-        categoryRepository.delete(categoryDelete);
-
-        return new ResponseMessageDTO(HttpStatus.OK, "Danh mục đã đươc xóa thành công");
+        return new ResponseMessageDTO(HttpStatus.OK, "Danh mục đã được xóa thành công");
     }
 
-    // Hàm helper check lỗi
-    /**
-     * Hàm private để tìm một danh mục theo ID.
-     * Ném ra NotFoundException nếu không tìm thấy.
-     * @param categoryId ID của danh mục cần tìm.
-     * @return Entity Category nếu tìm thấy.
-     * @throws NotFoundException nếu không có danh mục nào với ID đã cho.
-     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<CategoryResponseDTO> getCategoryHierarchy() {
+        // Get root categories
+        List<Category> rootCategories = categoryRepository.findByParentIsNull();
+
+        return rootCategories.stream()
+                .map(category -> {
+                    CategoryResponseDTO dto = categoryMapper.convertToDTOWithoutChildren(category);
+                    // Count actual children categories
+                    List<Category> children = categoryRepository.findByParentId(category.getId());
+                    dto.setChildrenCount(children.size());
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean canDeleteCategory(Long categoryId) {
+        Category category = findCategoryById(categoryId);
+
+        // Cannot delete if has products
+        if (!category.getProducts().isEmpty()) {
+            return false;
+        }
+
+        // Cannot delete if has children
+        if (categoryRepository.hasChildren(categoryId)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CategoryResponseDTO> getCategoryPath(Long categoryId) {
+        List<CategoryResponseDTO> path = new ArrayList<>();
+        Category current = findCategoryById(categoryId);
+
+        // Build path from current category to root
+        while (current != null) {
+            path.add(0, categoryMapper.convertToDTOWithoutChildren(current)); // Add at beginning
+            current = current.getParent();
+        }
+
+        return path;
+    }
+
+    // Helper methods
     private Category findCategoryById(Long categoryId) {
-        return  categoryRepository.findById(categoryId)
+        return categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy danh mục với ID: " + categoryId));
     }
-    /**
-     * Hàm private để kiểm tra tên danh mục đã tồn tại khi tạo mới.
-     * @param name Tên danh mục cần kiểm tra.
-     * @throws IllegalArgumentException nếu tên đã tồn tại.
-     */
-    private void checkCategoryNameExistOnCreate(String name) {
-        if (categoryRepository.existsByName(name)) {
-            throw new IllegalArgumentException("Tên danh mục '" + name + "' đã tồn tại.");
-        }
-    }
-    /**
-     * Hàm private để kiểm tra tên danh mục đã tồn tại khi cập nhật.
-     * @param name Tên danh mục mới.
-     * @param categoryId ID của danh mục đang được cập nhật.
-     * @throws IllegalArgumentException nếu tên đã được sử dụng bởi một danh mục khác.
-     */
-    private void checkCategoryNameExistOnUpdate(String name, Long categoryId) {
-        if (categoryRepository.existsByNameAndIdNot(name, categoryId)) {
-            throw new IllegalArgumentException("Tên danh mục '" + name + "' đã được sử dụng bởi 1 danh mục khác.");
+
+    private void checkCategoryNameExistOnCreate(String name, Long parentId) {
+        if (categoryRepository.existsByNameAndParentId(name, parentId)) {
+            String parentInfo = parentId != null ? " trong cùng danh mục cha" : " ở cấp gốc";
+            throw new IllegalArgumentException("Tên danh mục '" + name + "' đã tồn tại" + parentInfo);
         }
     }
 
-    /**
-     * Hàm private để kiểm tra xem danh mục có đang được sử dụng bởi sản phẩm nào không.
-     * @param category Đối tượng Category cần kiểm tra.
-     * @throws IllegalArgumentException nếu danh mục có chứa sản phẩm.
-     */
-    private void checkIfCategoryIsInUse (Category category) {
-        if (!category.getProducts().isEmpty()) {
-            throw  new IllegalArgumentException("Không thể xóa danh mục '" + category.getName() + "' vì nó đang chứa sản phẩm");
+    private void checkCategoryNameExistOnUpdate(String name, Long categoryId, Long parentId) {
+        if (categoryRepository.existsByNameAndParentIdAndIdNot(name, parentId, categoryId)) {
+            String parentInfo = parentId != null ? " trong cùng danh mục cha" : " ở cấp gốc";
+            throw new IllegalArgumentException("Tên danh mục '" + name + "' đã được sử dụng" + parentInfo);
         }
     }
 
+    private void checkCircularReference(Long categoryId, Long parentId) {
+        if (categoryId.equals(parentId)) {
+            throw new IllegalArgumentException("Danh mục không thể là cha của chính nó");
+        }
 
+        // Check if parentId is a descendant of categoryId
+        Category parent = findCategoryById(parentId);
+        Category current = parent.getParent();
+
+        while (current != null) {
+            if (current.getId().equals(categoryId)) {
+                throw new IllegalArgumentException("Không thể tạo vòng lặp trong cây danh mục");
+            }
+            current = current.getParent();
+        }
+    }
 }

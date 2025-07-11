@@ -1,8 +1,11 @@
 package e_commerce.monolithic.dto.admin.product;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 import e_commerce.monolithic.entity.enums.ProductVariantStatus;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -31,8 +34,12 @@ public class ProductVariantUpdateDTO {
     @Min(value = 0, message = "Số lượng không thể âm")
     private Integer quantity;
 
-    private String imageUrl;
+    private String imageUrl; // Keep for backward compatibility
 
     private ProductVariantStatus status;
+
+    // List of variant images
+    @Valid
+    private List<ProductVariantImageDTO> images = new ArrayList<>();
 
 }

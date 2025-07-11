@@ -301,7 +301,24 @@ public class ProductServiceImp implements ProductService {
         if (!java.util.Objects.equals(variant.getImageUrl(), dto.getImageUrl()))
             return true;
         // So sánh status, cần xử lý null
-        return !java.util.Objects.equals(variant.getStatus(), dto.getStatus());
+        if (!java.util.Objects.equals(variant.getStatus(), dto.getStatus()))
+            return true;
+
+        // So sánh images list - check if images have changed
+        if (dto.getImages() != null) {
+            int existingImagesCount = variant.getImages() != null ? variant.getImages().size() : 0;
+            if (existingImagesCount != dto.getImages().size()) {
+                return true;
+            }
+            // If counts are the same but we have images, it's likely modified
+            // (detailed comparison would be complex, so we consider any images update as
+            // modified)
+            if (!dto.getImages().isEmpty()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // hàm check exist

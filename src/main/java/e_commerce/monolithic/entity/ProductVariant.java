@@ -1,10 +1,13 @@
 package e_commerce.monolithic.entity;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import e_commerce.monolithic.entity.enums.ProductVariantStatus;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -33,7 +36,7 @@ import lombok.ToString;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = { "product", "color", "size", "orderItems" })
+@ToString(exclude = { "product", "color", "size", "orderItems", "images" })
 public class ProductVariant extends BaseEntity {
 
         @ManyToOne(fetch = FetchType.LAZY)
@@ -55,7 +58,7 @@ public class ProductVariant extends BaseEntity {
         private int quantity;
 
         @Column(name = "image_url")
-        private String imageUrl;
+        private String imageUrl; // Keep for backward compatibility
 
         @Enumerated(EnumType.STRING)
         @Column(name = "status", nullable = false)
@@ -65,4 +68,35 @@ public class ProductVariant extends BaseEntity {
         @OneToMany(mappedBy = "productVariant", fetch = FetchType.LAZY)
         private Set<OrderItem> orderItems = new HashSet<>();
 
+        @OneToMany(mappedBy = "productVariant", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+        @Builder.Default
+        private List<ProductVariantImage> images = new ArrayList<>();
+
+        // Helper methods for managing images
+        public void addImage(ProductVariantImage image) {
+                images.add(image);
+                image.setProductVariant(this);
+        }
+
+        public void removeImage(ProductVariantImage image) {
+                images.remove(image);
+                image.setProductVariant(null);
+        }
+
+        // Get primary image
+        public ProductVariantImage getPrimaryImage() {
+                return images.stream()
+                                .filter(ProductVariantImage::isPrimary)
+                                .findFirst()
+                                .orElse(images.isEmpty() ? null : images.get(0));
+        }
+
+        // Get primary image URL with fallback to legacy imageUrl
+        public String getPrimaryImageUrl() {
+                ProductVariantImage primaryImage = getPrimaryImage();
+                if (primaryImage != null) {
+                        return primaryImage.getImageUrl();
+                }
+                return imageUrl; // Fallback to legacy field
+        }
 }

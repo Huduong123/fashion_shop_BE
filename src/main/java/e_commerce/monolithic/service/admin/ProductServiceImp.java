@@ -21,16 +21,19 @@ import e_commerce.monolithic.dto.admin.product.ProductResponseDTO;
 import e_commerce.monolithic.dto.admin.product.ProductUpdateDTO;
 import e_commerce.monolithic.dto.admin.product.ProductVariantCreateDTO;
 import e_commerce.monolithic.dto.admin.product.ProductVariantUpdateDTO;
+import e_commerce.monolithic.dto.admin.product.ProductVariantSizeUpdateDTO;
 import e_commerce.monolithic.dto.common.ResponseMessageDTO;
 import e_commerce.monolithic.entity.BaseEntity;
 import e_commerce.monolithic.entity.Category;
 import e_commerce.monolithic.entity.Color;
 import e_commerce.monolithic.entity.Product;
 import e_commerce.monolithic.entity.ProductVariant;
+import e_commerce.monolithic.entity.ProductVariantSize;
 import e_commerce.monolithic.entity.Size;
 import e_commerce.monolithic.exeption.NotFoundException;
 import e_commerce.monolithic.mapper.ProductMapper;
 import e_commerce.monolithic.mapper.ProductVariantMapper;
+import e_commerce.monolithic.mapper.ProductVariantSizeMapper;
 import e_commerce.monolithic.repository.CategoryRepository;
 import e_commerce.monolithic.repository.ColorRepository;
 import e_commerce.monolithic.repository.ProductRepository;
@@ -48,10 +51,12 @@ public class ProductServiceImp implements ProductService {
     private final ProductMapper productMapper;
     private final ProductVariantMapper productVariantMapper;
     private final ProductSpecification productSpecification;
+    private final ProductVariantSizeMapper productVariantSizeMapper;
 
     public ProductServiceImp(ProductRepository productRepository, CategoryRepository categoryRepository,
             ColorRepository colorRepository, SizeRepository sizeRepository, ProductMapper productMapper,
-            ProductVariantMapper productVariantMapper, ProductSpecification productSpecification) {
+            ProductVariantMapper productVariantMapper, ProductSpecification productSpecification,
+            ProductVariantSizeMapper productVariantSizeMapper) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.colorRepository = colorRepository;
@@ -59,6 +64,7 @@ public class ProductServiceImp implements ProductService {
         this.productMapper = productMapper;
         this.productVariantMapper = productVariantMapper;
         this.productSpecification = productSpecification;
+        this.productVariantSizeMapper = productVariantSizeMapper;
     }
 
     @Override
@@ -195,9 +201,21 @@ public class ProductServiceImp implements ProductService {
     // hàm helper tạo 1 product variant
     private ProductVariant createVariantFromDTO(ProductVariantCreateDTO productVariantCreateDTO) {
         Color color = findColorById(productVariantCreateDTO.getColorId());
-        Size size = productVariantCreateDTO.getSizeId() != null ? findSizeById(productVariantCreateDTO.getSizeId())
-                : null;
-        return productVariantMapper.convertCreateDtoToEntity(productVariantCreateDTO, color, size);
+
+        // Create ProductVariant (without sizes for now)
+        ProductVariant variant = productVariantMapper.convertCreateDtoToEntity(productVariantCreateDTO, color);
+
+        // Create ProductVariantSizes
+        if (productVariantCreateDTO.getSizes() != null && !productVariantCreateDTO.getSizes().isEmpty()) {
+            for (var sizeCreateDTO : productVariantCreateDTO.getSizes()) {
+                Size size = findSizeById(sizeCreateDTO.getSizeId());
+                var productVariantSize = productVariantSizeMapper.convertCreateDtoToEntity(sizeCreateDTO, variant,
+                        size);
+                variant.addProductVariantSize(productVariantSize);
+            }
+        }
+
+        return variant;
     }
 
     private void updateProductVariants(Product product, List<ProductVariantUpdateDTO> variantDTOs) {
@@ -216,61 +234,43 @@ public class ProductServiceImp implements ProductService {
                         .orElseThrow(() -> new NotFoundException(
                                 "Không tìm thấy biến thể với ID: " + dto.getId() + " để cập nhật."));
 
-                // Kiểm tra xem có cần cập nhật không
-                if (isVariantModified(existingVariant, dto)) {
-                    // Chỉ cập nhật nếu có sự thay đổi
-                    Color color = findColorById(dto.getColorId());
-                    Size size = dto.getSizeId() != null ? findSizeById(dto.getSizeId()) : null;
+                // Update basic fields
+                Color color = findColorById(dto.getColorId());
+                existingVariant.setColor(color);
+                existingVariant.setImageUrl(dto.getImageUrl());
+                existingVariant.setStatus(dto.getStatus());
 
-                    // Logic kiểm tra trùng lặp khi thay đổi color/size
-                    String newAttributeKey = color.getId() + "-" + (size != null ? size.getId() : "null");
-                    String oldAttributeKey = existingVariant.getColor().getId() + "-"
-                            + (existingVariant.getSize() != null ? existingVariant.getSize().getId() : "null");
+                // Update ProductVariantSizes
+                updateProductVariantSizes(existingVariant, dto.getSizes());
 
-                    if (!newAttributeKey.equals(oldAttributeKey)) {
-                        // Nếu thay đổi, kiểm tra xem key mới có bị một biến thể khác chiếm giữ không
-                        boolean isDuplicate = product.getProductVariants().stream()
-                                .anyMatch(v -> !v.getId().equals(dto.getId())
-                                        && (v.getColor().getId() + "-"
-                                                + (v.getSize() != null ? v.getSize().getId() : "null"))
-                                                .equals(newAttributeKey));
-                        if (isDuplicate) {
-                            throw new IllegalArgumentException("Không thể cập nhật. Biến thể với Màu '"
-                                    + color.getName() + "' và Size '" + (size != null ? size.getName() : "Không có")
-                                    + "' đã tồn tại.");
-                        }
-                    }
-
-                    existingVariant.setColor(color);
-                    existingVariant.setSize(size);
-                    existingVariant.setPrice(dto.getPrice());
-                    existingVariant.setQuantity(dto.getQuantity());
-                    existingVariant.setImageUrl(dto.getImageUrl());
-                    existingVariant.setStatus(dto.getStatus());
-                }
-
-                finalVariants.add(existingVariant); // Thêm biến thể (dù có sửa hay không) vào danh sách cuối cùng
-                existingVariantsMap.remove(dto.getId()); // Xóa khỏi map để theo dõi các biến thể cần xóa
+                finalVariants.add(existingVariant);
+                existingVariantsMap.remove(dto.getId());
             }
             // Trường hợp 2: Thêm biến thể mới (DTO không có ID)
             else {
                 Color color = findColorById(dto.getColorId());
-                Size size = dto.getSizeId() != null ? findSizeById(dto.getSizeId()) : null;
-                String attributeKey = color.getId() + "-" + (size != null ? size.getId() : "null");
 
-                // Kiểm tra trùng lặp với tất cả các biến thể đã có của sản phẩm
+                // Check for duplicate color
                 boolean isDuplicate = product.getProductVariants().stream()
-                        .anyMatch(
-                                v -> (v.getColor().getId() + "-" + (v.getSize() != null ? v.getSize().getId() : "null"))
-                                        .equals(attributeKey));
+                        .anyMatch(v -> v.getColor().getId().equals(color.getId()));
                 if (isDuplicate) {
-                    throw new IllegalArgumentException(
-                            "Biến thể với Màu '" + color.getName() + "' và Size '"
-                                    + (size != null ? size.getName() : "Không có") + "' đã tồn tại.");
+                    throw new IllegalArgumentException("Biến thể với Màu '" + color.getName() + "' đã tồn tại.");
                 }
 
-                ProductVariant newVariant = productVariantMapper.convertUpdateDtoToNewEntity(dto, color, size);
+                // Create new variant
+                ProductVariant newVariant = productVariantMapper.convertUpdateDtoToNewEntity(dto, color);
                 newVariant.setProduct(product);
+
+                // Add sizes to new variant
+                if (dto.getSizes() != null && !dto.getSizes().isEmpty()) {
+                    for (var sizeUpdateDTO : dto.getSizes()) {
+                        Size size = findSizeById(sizeUpdateDTO.getSizeId());
+                        var productVariantSize = productVariantSizeMapper.convertUpdateDtoToNewEntity(sizeUpdateDTO,
+                                newVariant, size);
+                        newVariant.addProductVariantSize(productVariantSize);
+                    }
+                }
+
                 finalVariants.add(newVariant);
             }
         }
@@ -282,44 +282,49 @@ public class ProductServiceImp implements ProductService {
         product.getProductVariants().addAll(finalVariants);
     }
 
-    /**
-     * Hàm helper để kiểm tra xem một biến thể có bị thay đổi so với DTO không.
-     */
-    private boolean isVariantModified(ProductVariant variant, ProductVariantUpdateDTO dto) {
-        // So sánh từng trường. Nếu có bất kỳ trường nào khác nhau, trả về true.
-        if (!variant.getColor().getId().equals(dto.getColorId()))
-            return true;
-        // Handle null size comparison
-        Long variantSizeId = variant.getSize() != null ? variant.getSize().getId() : null;
-        if (!java.util.Objects.equals(variantSizeId, dto.getSizeId()))
-            return true;
-        if (variant.getPrice().compareTo(dto.getPrice()) != 0)
-            return true;
-        if (variant.getQuantity() != dto.getQuantity())
-            return true;
-        // So sánh imageUrl, cần xử lý null
-        if (!java.util.Objects.equals(variant.getImageUrl(), dto.getImageUrl()))
-            return true;
-        // So sánh status, cần xử lý null
-        if (!java.util.Objects.equals(variant.getStatus(), dto.getStatus()))
-            return true;
+    private void updateProductVariantSizes(ProductVariant variant, List<ProductVariantSizeUpdateDTO> sizeUpdateDTOs) {
+        // Map existing sizes by ID for easy access
+        Map<Long, ProductVariantSize> existingSizesMap = variant.getProductVariantSizes().stream()
+                .collect(Collectors.toMap(BaseEntity::getId, Function.identity()));
 
-        // So sánh images list - check if images have changed
-        if (dto.getImages() != null) {
-            int existingImagesCount = variant.getImages() != null ? variant.getImages().size() : 0;
-            if (existingImagesCount != dto.getImages().size()) {
-                return true;
-            }
-            // If counts are the same but we have images, it's likely modified
-            // (detailed comparison would be complex, so we consider any images update as
-            // modified)
-            if (!dto.getImages().isEmpty()) {
-                return true;
+        // Set to store final sizes
+        Set<ProductVariantSize> finalSizes = new HashSet<>();
+
+        for (ProductVariantSizeUpdateDTO sizeDTO : sizeUpdateDTOs) {
+            if (sizeDTO.getId() != null) {
+                // Update existing size
+                ProductVariantSize existingSize = Optional.ofNullable(existingSizesMap.get(sizeDTO.getId()))
+                        .orElseThrow(() -> new NotFoundException(
+                                "Không tìm thấy kích thước với ID: " + sizeDTO.getId() + " để cập nhật."));
+
+                Size size = findSizeById(sizeDTO.getSizeId());
+                productVariantSizeMapper.convertUpdateDtoToEntity(sizeDTO, existingSize, size);
+                finalSizes.add(existingSize);
+                existingSizesMap.remove(sizeDTO.getId());
+            } else {
+                // Create new size
+                Size size = findSizeById(sizeDTO.getSizeId());
+
+                // Check for duplicate size in this variant
+                boolean isDuplicate = variant.getProductVariantSizes().stream()
+                        .anyMatch(pvs -> pvs.getSize().getId().equals(size.getId()));
+                if (isDuplicate) {
+                    throw new IllegalArgumentException(
+                            "Kích thước '" + size.getName() + "' đã tồn tại trong biến thể này.");
+                }
+
+                ProductVariantSize newSize = productVariantSizeMapper.convertUpdateDtoToNewEntity(sizeDTO, variant,
+                        size);
+                finalSizes.add(newSize);
             }
         }
 
-        return false;
+        // Update variant sizes
+        variant.getProductVariantSizes().clear();
+        variant.getProductVariantSizes().addAll(finalSizes);
     }
+
+    // Method removed - no longer needed with new ProductVariantSize structure
 
     // hàm check exist
     private void checkProductNameExists(String productName) {
@@ -341,23 +346,54 @@ public class ProductServiceImp implements ProductService {
     }
 
     private void checkDuplicateVariantsOncreate(List<ProductVariantCreateDTO> variantCreateDTOS) {
-        long distinctCount = variantCreateDTOS.stream()
-                .map(v -> v.getColorId() + "-" + (v.getSizeId() != null ? v.getSizeId() : "null"))
+        // Check for duplicate colors (since each variant now represents a color with
+        // multiple sizes)
+        long distinctColorCount = variantCreateDTOS.stream()
+                .map(ProductVariantCreateDTO::getColorId)
                 .distinct()
                 .count();
-        if (distinctCount < variantCreateDTOS.size()) {
+        if (distinctColorCount < variantCreateDTOS.size()) {
             throw new IllegalArgumentException(
-                    " Không tể tạo sản phẩm với các biến thể (màu sắc , kích thước) trùng lặp");
+                    "Không thể tạo sản phẩm với các biến thể màu sắc trùng lặp");
+        }
+
+        // Check for duplicate sizes within each variant
+        for (ProductVariantCreateDTO variantDTO : variantCreateDTOS) {
+            if (variantDTO.getSizes() != null && !variantDTO.getSizes().isEmpty()) {
+                long distinctSizeCount = variantDTO.getSizes().stream()
+                        .map(size -> size.getSizeId())
+                        .distinct()
+                        .count();
+                if (distinctSizeCount < variantDTO.getSizes().size()) {
+                    throw new IllegalArgumentException(
+                            "Không thể tạo biến thể với các kích thước trùng lặp");
+                }
+            }
         }
     }
 
     private void checkDuplicateVariantsOnUpdate(List<ProductVariantUpdateDTO> variantUpdateDTOList) {
-        long distinctCount = variantUpdateDTOList.stream()
-                .map(v -> v.getColorId() + "-" + (v.getSizeId() != null ? v.getSizeId() : "null"))
+        // Check for duplicate colors
+        long distinctColorCount = variantUpdateDTOList.stream()
+                .map(ProductVariantUpdateDTO::getColorId)
                 .distinct()
                 .count();
-        if (distinctCount < variantUpdateDTOList.size()) {
-            throw new IllegalArgumentException("Không thể cập nhật với các biến thể ( màu sắc, kích thước) trùng lặp");
+        if (distinctColorCount < variantUpdateDTOList.size()) {
+            throw new IllegalArgumentException("Không thể cập nhật với các biến thể màu sắc trùng lặp");
+        }
+
+        // Check for duplicate sizes within each variant
+        for (ProductVariantUpdateDTO variantDTO : variantUpdateDTOList) {
+            if (variantDTO.getSizes() != null && !variantDTO.getSizes().isEmpty()) {
+                long distinctSizeCount = variantDTO.getSizes().stream()
+                        .map(size -> size.getSizeId())
+                        .distinct()
+                        .count();
+                if (distinctSizeCount < variantDTO.getSizes().size()) {
+                    throw new IllegalArgumentException(
+                            "Không thể cập nhật biến thể với các kích thước trùng lặp");
+                }
+            }
         }
     }
 

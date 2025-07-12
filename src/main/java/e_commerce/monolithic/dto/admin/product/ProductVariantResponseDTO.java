@@ -20,11 +20,14 @@ public class ProductVariantResponseDTO {
     private Long colorId;
     private String colorName;
 
-    private Long sizeId;
-    private String sizeName;
+    private List<ProductVariantSizeResponseDTO> sizes = new ArrayList<>();
 
-    private BigDecimal price;
-    private int quantity;
+    // Calculated fields for convenience
+    private BigDecimal minPrice;
+    private BigDecimal maxPrice;
+    private Integer totalQuantity;
+    private boolean available; // Has at least one available size
+
     private String imageUrl; // Keep for backward compatibility
     private ProductVariantStatus status;
 

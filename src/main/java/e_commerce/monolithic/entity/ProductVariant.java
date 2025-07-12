@@ -28,7 +28,7 @@ import lombok.ToString;
 @Entity
 @Table(name = "product_variants", uniqueConstraints = {
                 @UniqueConstraint(columnNames = {
-                                "product_id", "color_id", "size_id"
+                                "product_id", "color_id"
                 }, name = "uq_product_variant")
 })
 @Getter
@@ -36,7 +36,7 @@ import lombok.ToString;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = { "product", "color", "size", "orderItems", "images" })
+@ToString(exclude = { "product", "color", "orderItems", "images", "productVariantSizes" })
 public class ProductVariant extends BaseEntity {
 
         @ManyToOne(fetch = FetchType.LAZY)
@@ -47,15 +47,9 @@ public class ProductVariant extends BaseEntity {
         @JoinColumn(name = "color_id", nullable = false)
         private Color color;
 
-        @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(name = "size_id", nullable = true)
-        private Size size;
-
-        @Column(name = "price", nullable = false, precision = 10, scale = 2)
-        private BigDecimal price;
-
-        @Column(name = "quantity", nullable = false)
-        private int quantity;
+        @OneToMany(mappedBy = "productVariant", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+        @Builder.Default
+        private List<ProductVariantSize> productVariantSizes = new ArrayList<>();
 
         @Column(name = "image_url")
         private String imageUrl; // Keep for backward compatibility
@@ -98,5 +92,45 @@ public class ProductVariant extends BaseEntity {
                         return primaryImage.getImageUrl();
                 }
                 return imageUrl; // Fallback to legacy field
+        }
+
+        // Helper methods for managing ProductVariantSizes
+        public void addProductVariantSize(ProductVariantSize productVariantSize) {
+                productVariantSizes.add(productVariantSize);
+                productVariantSize.setProductVariant(this);
+        }
+
+        public void removeProductVariantSize(ProductVariantSize productVariantSize) {
+                productVariantSizes.remove(productVariantSize);
+                productVariantSize.setProductVariant(null);
+        }
+
+        // Get total quantity across all sizes
+        public int getTotalQuantity() {
+                return productVariantSizes.stream()
+                                .mapToInt(ProductVariantSize::getQuantity)
+                                .sum();
+        }
+
+        // Get minimum price across all sizes
+        public BigDecimal getMinPrice() {
+                return productVariantSizes.stream()
+                                .map(ProductVariantSize::getPrice)
+                                .min(BigDecimal::compareTo)
+                                .orElse(BigDecimal.ZERO);
+        }
+
+        // Get maximum price across all sizes
+        public BigDecimal getMaxPrice() {
+                return productVariantSizes.stream()
+                                .map(ProductVariantSize::getPrice)
+                                .max(BigDecimal::compareTo)
+                                .orElse(BigDecimal.ZERO);
+        }
+
+        // Check if variant is available (has at least one size with quantity > 0)
+        public boolean isAvailable() {
+                return productVariantSizes.stream()
+                                .anyMatch(ProductVariantSize::isAvailable);
         }
 }

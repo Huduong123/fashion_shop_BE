@@ -16,12 +16,13 @@ public class OrderMapper {
 
         var variant = orderItem.getProductVariant();
         var product = variant.getProduct();
+        var size = orderItem.getSize();
 
         return OrderItemResponseDTO.builder()
                 .productVariantId(variant.getId())
                 .productName(product.getName())
                 .colorName(variant.getColor().getName())
-                .sizeName(variant.getSize().getName())
+                .sizeName(size.getName())
                 .imageUrl(variant.getImageUrl())
                 .quantity(orderItem.getQuantity())
                 .price(orderItem.getPrice())

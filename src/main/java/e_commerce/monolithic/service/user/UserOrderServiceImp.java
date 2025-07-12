@@ -9,7 +9,6 @@ import e_commerce.monolithic.exeption.NotFoundException;
 import e_commerce.monolithic.mapper.OrderMapper;
 import e_commerce.monolithic.repository.CartItemRepository;
 import e_commerce.monolithic.repository.OrderRepository;
-import e_commerce.monolithic.repository.ProductVariantRepository;
 import e_commerce.monolithic.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,8 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class UserOrderServiceImp implements UserOrderService {
@@ -28,14 +27,12 @@ public class UserOrderServiceImp implements UserOrderService {
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final CartItemRepository cartItemRepository;
-    private final ProductVariantRepository productVariantRepository;
     private final OrderMapper orderMapper;
 
-    public UserOrderServiceImp(OrderRepository orderRepository, UserRepository userRepository, CartItemRepository cartItemRepository, ProductVariantRepository productVariantRepository, OrderMapper orderMapper) {
+    public UserOrderServiceImp(OrderRepository orderRepository, UserRepository userRepository, CartItemRepository cartItemRepository, OrderMapper orderMapper) {
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
         this.cartItemRepository = cartItemRepository;
-        this.productVariantRepository = productVariantRepository;
         this.orderMapper = orderMapper;
     }
 
@@ -127,44 +124,63 @@ public class UserOrderServiceImp implements UserOrderService {
 
         for (CartItem cartItem : cartItems) {
             ProductVariant productVariant = cartItem.getProductVariant();
+            Size size = cartItem.getSize();
             int requestedQuantity = cartItem.getQuantity();
 
-            checkAndReduceStock(productVariant, requestedQuantity);
+            // Tìm ProductVariantSize tương ứng
+            ProductVariantSize productVariantSize = findProductVariantSize(productVariant, size);
+            
+            checkAndReduceStock(productVariantSize, requestedQuantity);
 
-            OrderItem orderItem = createOrderItem(newOrder, productVariant, requestedQuantity);
+            OrderItem orderItem = createOrderItem(newOrder, productVariant, size, requestedQuantity, productVariantSize.getPrice());
 
             newOrder.getOrderItems().add(orderItem);
 
-            totalPrice = totalPrice.add(orderItem.getPrice().multiply(BigDecimal.valueOf(requestedQuantity)));
+            totalPrice = totalPrice.add(productVariantSize.getPrice().multiply(BigDecimal.valueOf(requestedQuantity)));
         }
         newOrder.setTotalPrice(totalPrice);
         return newOrder;
-
-
     }
 
-    // kiểm tra tồn kho và giản số lyownjg sản phẩm
-    private void checkAndReduceStock(ProductVariant productVariant, int requestedQuantity) {
-        if (productVariant.getQuantity() < requestedQuantity) {
-            throw new IllegalArgumentException(String.format("Sảm phẩm '%s' không đủ số lượng. Chỉ còn %d sản phẩm trong kho.",
-                    productVariant.getProduct().getName(), productVariant.getQuantity()));
+    /**
+     * Tìm ProductVariantSize tương ứng với ProductVariant và Size
+     */
+    private ProductVariantSize findProductVariantSize(ProductVariant productVariant, Size size) {
+        Optional<ProductVariantSize> productVariantSizeOpt = productVariant.getProductVariantSizes().stream()
+                .filter(pvs -> pvs.getSize().getId().equals(size.getId()))
+                .findFirst();
+
+        if (productVariantSizeOpt.isEmpty()) {
+            throw new IllegalArgumentException("Size không có sẵn cho sản phẩm này.");
         }
-        productVariant.setQuantity(productVariant.getQuantity() - requestedQuantity);
+
+        return productVariantSizeOpt.get();
+    }
+
+    // kiểm tra tồn kho và giảm số lượng sản phẩm
+    private void checkAndReduceStock(ProductVariantSize productVariantSize, int requestedQuantity) {
+        if (productVariantSize.getQuantity() < requestedQuantity) {
+            throw new IllegalArgumentException(String.format("Sản phẩm '%s' không đủ số lượng. Chỉ còn %d sản phẩm trong kho.",
+                    productVariantSize.getProductVariant().getProduct().getName(), productVariantSize.getQuantity()));
+        }
+        productVariantSize.setQuantity(productVariantSize.getQuantity() - requestedQuantity);
     }
 
     // tạo 1 đối tượng order item
-    private OrderItem createOrderItem(Order order, ProductVariant productVariant, int quantity) {
+    private OrderItem createOrderItem(Order order, ProductVariant productVariant, Size size, int quantity, BigDecimal price) {
         return OrderItem.builder()
                 .order(order)
                 .productVariant(productVariant)
+                .size(size)
                 .quantity(quantity)
-                .price(productVariant.getPrice())
+                .price(price)
                 .build();
     }
-    // kiêm tra user có phải là chủ sỡ hữu order không
+    
+    // kiểm tra user có phải là chủ sở hữu order không
     private void checkOwnerShip(Order order, User user) {
         if(!order.getUser().getId().equals(user.getId())) {
-            throw new AccessDeniedException("Bạn không có quyeefn thực hiện thao tác trên đơn hàng này");
+            throw new AccessDeniedException("Bạn không có quyền thực hiện thao tác trên đơn hàng này");
         }
     }
 
@@ -179,9 +195,11 @@ public class UserOrderServiceImp implements UserOrderService {
     private void restoreStockForCancelledOrder(Order order) {
         for (OrderItem item : order.getOrderItems()) {
             ProductVariant productVariant = item.getProductVariant();
-            productVariant.setQuantity(productVariant.getQuantity() + item.getQuantity());
+            Size size = item.getSize();
+            
+            // Tìm ProductVariantSize tương ứng
+            ProductVariantSize productVariantSize = findProductVariantSize(productVariant, size);
+            productVariantSize.setQuantity(productVariantSize.getQuantity() + item.getQuantity());
         }
     }
-
-
 }

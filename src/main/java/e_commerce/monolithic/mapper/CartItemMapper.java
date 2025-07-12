@@ -2,9 +2,11 @@ package e_commerce.monolithic.mapper;
 
 import e_commerce.monolithic.dto.user.cart_item.CartItemResponseDTO;
 import e_commerce.monolithic.entity.CartItem;
+import e_commerce.monolithic.entity.ProductVariantSize;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 
 @Component
 public class CartItemMapper {
@@ -17,18 +19,27 @@ public class CartItemMapper {
         var variant = cartItem.getProductVariant();
         var product = variant.getProduct();
         var color = variant.getColor();
-        var size = variant.getSize();
+        var size = cartItem.getSize();
 
-        BigDecimal subTotal = variant.getPrice().multiply(new BigDecimal(cartItem.getQuantity()));
+        // Find the specific ProductVariantSize for this size
+        Optional<ProductVariantSize> productVariantSize = variant.getProductVariantSizes().stream()
+                .filter(pvs -> pvs.getSize().getId().equals(size.getId()))
+                .findFirst();
+
+        BigDecimal price = productVariantSize.map(ProductVariantSize::getPrice)
+                .orElse(BigDecimal.ZERO);
+
+        BigDecimal subTotal = price.multiply(new BigDecimal(cartItem.getQuantity()));
 
         return CartItemResponseDTO.builder()
                 .id(cartItem.getId())
                 .productVariantId(variant.getId())
+                .sizeId(size.getId())
                 .productName(product.getName())
                 .colorName(color.getName())
                 .sizeName(size.getName())
                 .imageUrl(variant.getImageUrl())
-                .price(variant.getPrice())
+                .price(price)
                 .quantity(cartItem.getQuantity())
                 .subTotal(subTotal)
                 .build();

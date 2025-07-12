@@ -25,80 +25,80 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class OrderServiceImp implements OrderService {
 
-    private final OrderRepository orderRepository;
+        private final OrderRepository orderRepository;
 
-    @Override
-    public Page<OrderAdminResponseDTO> getAllOrders(Pageable pageable, String username, OrderStatus status, LocalDate startDate, LocalDate endDate) {
-        Specification<Order> spec = OrderSpecification.getAllOrdersSpec(username, status, startDate, endDate);
-        Page<Order> orderPage = orderRepository.findAll(spec, pageable);
-        
-        return orderPage.map(this::convertToOrderAdminResponseDTO);
-    }
+        @Override
+        public Page<OrderAdminResponseDTO> getAllOrders(Pageable pageable, String username, OrderStatus status,
+                        LocalDate startDate, LocalDate endDate) {
+                Specification<Order> spec = OrderSpecification.getAllOrdersSpec(username, status, startDate, endDate);
+                Page<Order> orderPage = orderRepository.findAll(spec, pageable);
 
-    @Override
-    public OrderAdminResponseDTO getOrderById(Long orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new NotFoundException("Order not found with id: " + orderId));
-        
-        return convertToOrderAdminResponseDTO(order);
-    }
+                return orderPage.map(this::convertToOrderAdminResponseDTO);
+        }
 
-    @Override
-    @Transactional
-    public ResponseMessageDTO updateOrderStatus(Long orderId, OrderStatus status) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new NotFoundException("Order not found with id: " + orderId));
-        
-        order.setStatus(status);
-        orderRepository.save(order);
-        
-        return ResponseMessageDTO.builder()
-                .message("Order status updated successfully")
-                .build();
-    }
+        @Override
+        public OrderAdminResponseDTO getOrderById(Long orderId) {
+                Order order = orderRepository.findById(orderId)
+                                .orElseThrow(() -> new NotFoundException("Order not found with id: " + orderId));
 
-    @Override
-    @Transactional
-    public ResponseMessageDTO deleteOrder(Long orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new NotFoundException("Order not found with id: " + orderId));
-        
-        orderRepository.delete(order);
-        
-        return ResponseMessageDTO.builder()
-                .message("Order deleted successfully")
-                .build();
-    }
+                return convertToOrderAdminResponseDTO(order);
+        }
 
-    private OrderAdminResponseDTO convertToOrderAdminResponseDTO(Order order) {
-        return OrderAdminResponseDTO.builder()
-                .id(order.getId())
-                .totalPrice(order.getTotalPrice())
-                .status(order.getStatus())
-                .createdAt(order.getCreatedAt())
-                .updatedAt(order.getUpdatedAt())
-                .totalItems(order.getOrderItems().size())
-                .userId(order.getUser().getId())
-                .username(order.getUser().getUsername())
-                .userEmail(order.getUser().getEmail())
-                .userFullname(order.getUser().getFullname())
-                .userPhone(order.getUser().getPhone())
-                .orderItems(order.getOrderItems().stream()
-                        .map(this::convertToOrderItemResponseDTO)
-                        .collect(Collectors.toList()))
-                .build();
-    }
-    
-    private OrderItemResponseDTO convertToOrderItemResponseDTO(OrderItem orderItem) {
-        return OrderItemResponseDTO.builder()
-                .productVariantId(orderItem.getProductVariant().getId())
-                .productName(orderItem.getProductVariant().getProduct().getName())
-                .colorName(orderItem.getProductVariant().getColor().getName())
-                .sizeName(orderItem.getProductVariant().getSize() != null ? 
-                        orderItem.getProductVariant().getSize().getName() : "N/A")
-                .imageUrl(orderItem.getProductVariant().getImageUrl())
-                .quantity(orderItem.getQuantity())
-                .price(orderItem.getPrice())
-                .build();
-    }
-} 
+        @Override
+        @Transactional
+        public ResponseMessageDTO updateOrderStatus(Long orderId, OrderStatus status) {
+                Order order = orderRepository.findById(orderId)
+                                .orElseThrow(() -> new NotFoundException("Order not found with id: " + orderId));
+
+                order.setStatus(status);
+                orderRepository.save(order);
+
+                return ResponseMessageDTO.builder()
+                                .message("Order status updated successfully")
+                                .build();
+        }
+
+        @Override
+        @Transactional
+        public ResponseMessageDTO deleteOrder(Long orderId) {
+                Order order = orderRepository.findById(orderId)
+                                .orElseThrow(() -> new NotFoundException("Order not found with id: " + orderId));
+
+                orderRepository.delete(order);
+
+                return ResponseMessageDTO.builder()
+                                .message("Order deleted successfully")
+                                .build();
+        }
+
+        private OrderAdminResponseDTO convertToOrderAdminResponseDTO(Order order) {
+                return OrderAdminResponseDTO.builder()
+                                .id(order.getId())
+                                .totalPrice(order.getTotalPrice())
+                                .status(order.getStatus())
+                                .createdAt(order.getCreatedAt())
+                                .updatedAt(order.getUpdatedAt())
+                                .totalItems(order.getOrderItems().size())
+                                .userId(order.getUser().getId())
+                                .username(order.getUser().getUsername())
+                                .userEmail(order.getUser().getEmail())
+                                .userFullname(order.getUser().getFullname())
+                                .userPhone(order.getUser().getPhone())
+                                .orderItems(order.getOrderItems().stream()
+                                                .map(this::convertToOrderItemResponseDTO)
+                                                .collect(Collectors.toList()))
+                                .build();
+        }
+
+        private OrderItemResponseDTO convertToOrderItemResponseDTO(OrderItem orderItem) {
+                return OrderItemResponseDTO.builder()
+                                .productVariantId(orderItem.getProductVariant().getId())
+                                .productName(orderItem.getProductVariant().getProduct().getName())
+                                .colorName(orderItem.getProductVariant().getColor().getName())
+                                .sizeName(orderItem.getSize().getName())
+                                .imageUrl(orderItem.getProductVariant().getImageUrl())
+                                .quantity(orderItem.getQuantity())
+                                .price(orderItem.getPrice())
+                                .build();
+        }
+}

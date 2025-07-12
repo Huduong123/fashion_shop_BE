@@ -26,7 +26,7 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
                         "JOIN FETCH oi.productVariant pv " +
                         "JOIN FETCH pv.product p " +
                         "JOIN FETCH pv.color c " +
-                        "JOIN FETCH pv.size s " +
+                        "JOIN FETCH oi.size s " +
                         "WHERE o.id = :orderId AND o.user.id = :userId")
         Optional<Order> findByIdAndUserIdWithDetails(@Param("orderId") Long orderId,
                         @Param("userId") Long userId);

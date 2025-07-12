@@ -5,11 +5,14 @@ import e_commerce.monolithic.dto.user.cart_item.CartItemCreateDTO;
 import e_commerce.monolithic.dto.user.cart_item.CartItemResponseDTO;
 import e_commerce.monolithic.entity.CartItem;
 import e_commerce.monolithic.entity.ProductVariant;
+import e_commerce.monolithic.entity.ProductVariantSize;
+import e_commerce.monolithic.entity.Size;
 import e_commerce.monolithic.entity.User;
 import e_commerce.monolithic.exeption.NotFoundException;
 import e_commerce.monolithic.mapper.CartItemMapper;
 import e_commerce.monolithic.repository.CartItemRepository;
 import e_commerce.monolithic.repository.ProductVariantRepository;
+import e_commerce.monolithic.repository.SizeRepository;
 import e_commerce.monolithic.repository.UserRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,26 +31,33 @@ public class CartServiceImp implements CartService {
     private final CartItemRepository cartItemRepository;
     private final UserRepository userRepository;
     private final ProductVariantRepository productVariantRepository;
+    private final SizeRepository sizeRepository;
     private final CartItemMapper cartItemMapper;
 
-    public CartServiceImp(CartItemRepository cartItemRepository, UserRepository userRepository, ProductVariantRepository productVariantRepository, CartItemMapper cartItemMapper) {
+    public CartServiceImp(CartItemRepository cartItemRepository, UserRepository userRepository,
+            ProductVariantRepository productVariantRepository, SizeRepository sizeRepository,
+            CartItemMapper cartItemMapper) {
         this.cartItemRepository = cartItemRepository;
         this.userRepository = userRepository;
         this.productVariantRepository = productVariantRepository;
+        this.sizeRepository = sizeRepository;
         this.cartItemMapper = cartItemMapper;
     }
 
-   private User getUserByUsername(String username) {
-        return  userRepository.findByUsername(username)
+    private User getUserByUsername(String username) {
+        return userRepository.findByUsername(username)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy người dùng với username: " + username));
-   }
+    }
 
     private CartItem getCartItemForUser(Long cartItemId, Long userId) {
         return cartItemRepository.findByIdAndUserId(cartItemId, userId)
-                .orElseThrow(() -> new NotFoundException("Không tìm thấy sản phẩm với ID " + cartItemId + " trong giỏ hàng của bạn."));
+                .orElseThrow(() -> new NotFoundException(
+                        "Không tìm thấy sản phẩm với ID " + cartItemId + " trong giỏ hàng của bạn."));
     }
+
     /**
      * Lấy entity ProductVariant từ ID, nếu không tìm thấy sẽ ném ra exception.
+     * 
      * @param variantId ID của biến thể sản phẩm.
      * @return Entity ProductVariant.
      */
@@ -57,15 +67,39 @@ public class CartServiceImp implements CartService {
     }
 
     /**
-     * Kiểm tra số lượng tồn kho của sản phẩm.
-     * @param variant Biến thể sản phẩm cần kiểm tra.
+     * Lấy entity Size từ ID, nếu không tìm thấy sẽ ném ra exception.
+     * 
+     * @param sizeId ID của size.
+     * @return Entity Size.
+     */
+    private Size getSizeById(Long sizeId) {
+        return sizeRepository.findById(sizeId)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy size với ID: " + sizeId));
+    }
+
+    /**
+     * Kiểm tra số lượng tồn kho của sản phẩm theo size cụ thể.
+     * 
+     * @param variant           Biến thể sản phẩm cần kiểm tra.
+     * @param sizeId            ID của size cần kiểm tra.
      * @param requestedQuantity Số lượng yêu cầu.
      */
-    private void checkStockAvailability(ProductVariant variant, int requestedQuantity) {
-        if (variant.getQuantity() < requestedQuantity) {
-            throw new IllegalArgumentException("Không đủ số lượng sản phẩm trong kho. Chỉ còn " + variant.getQuantity() + " sản phẩm.");
+    private void checkStockAvailability(ProductVariant variant, Long sizeId, int requestedQuantity) {
+        Optional<ProductVariantSize> productVariantSize = variant.getProductVariantSizes().stream()
+                .filter(pvs -> pvs.getSize().getId().equals(sizeId))
+                .findFirst();
+
+        if (productVariantSize.isEmpty()) {
+            throw new IllegalArgumentException("Size không có sẵn cho sản phẩm này.");
+        }
+
+        int availableQuantity = productVariantSize.get().getQuantity();
+        if (availableQuantity < requestedQuantity) {
+            throw new IllegalArgumentException(
+                    "Không đủ số lượng sản phẩm trong kho. Chỉ còn " + availableQuantity + " sản phẩm cho size này.");
         }
     }
+
     @Override
     @Transactional(readOnly = true)
     public List<CartItemResponseDTO> getCartItems(String username) {
@@ -94,9 +128,11 @@ public class CartServiceImp implements CartService {
         // 1. Lấy thông tin cần thiết
         User user = getUserByUsername(username);
         ProductVariant variant = getProductVariantById(createDTO.getProductVariantId());
+        Size size = getSizeById(createDTO.getSizeId());
 
-        // 2. Kiểm tra xem sản phẩm đã có trong giỏ hàng chưa
-        Optional<CartItem> existingCartItemOpt = cartItemRepository.findByUserIdAndProductVariantId(user.getId(), variant.getId());
+        // 2. Kiểm tra xem sản phẩm với size cụ thể đã có trong giỏ hàng chưa
+        Optional<CartItem> existingCartItemOpt = cartItemRepository
+                .findByUserIdAndProductVariantIdAndSizeId(user.getId(), variant.getId(), size.getId());
 
         CartItem cartItemToSave;
         if (existingCartItemOpt.isPresent()) {
@@ -104,14 +140,15 @@ public class CartServiceImp implements CartService {
             cartItemToSave = existingCartItemOpt.get();
             int newQuantity = cartItemToSave.getQuantity() + createDTO.getQuantity();
 
-            checkStockAvailability(variant, newQuantity); // Kiểm tra tồn kho
+            checkStockAvailability(variant, size.getId(), newQuantity); // Kiểm tra tồn kho
             cartItemToSave.setQuantity(newQuantity);
         } else {
             // 3b. Nếu chưa có, tạo mới
-            checkStockAvailability(variant, createDTO.getQuantity()); // Kiểm tra tồn kho
+            checkStockAvailability(variant, size.getId(), createDTO.getQuantity()); // Kiểm tra tồn kho
             cartItemToSave = CartItem.builder()
                     .user(user)
                     .productVariant(variant)
+                    .size(size)
                     .quantity(createDTO.getQuantity())
                     .build();
         }
@@ -128,9 +165,10 @@ public class CartServiceImp implements CartService {
         User user = getUserByUsername(username);
         CartItem cartItem = getCartItemForUser(cartItemId, user.getId());
         ProductVariant variant = cartItem.getProductVariant();
+        Size size = cartItem.getSize();
 
         // 2. Kiểm tra tồn kho trước khi tăng
-        checkStockAvailability(variant, cartItem.getQuantity() + 1);
+        checkStockAvailability(variant, size.getId(), cartItem.getQuantity() + 1);
 
         // 3. Tăng số lượng và lưu
         cartItem.setQuantity(cartItem.getQuantity() + 1);
@@ -170,7 +208,7 @@ public class CartServiceImp implements CartService {
         User user = getUserByUsername(username);
         CartItem cartItem = getCartItemForUser(cartItemId, user.getId());
         cartItemRepository.delete(cartItem);
-        return  new ResponseMessageDTO(HttpStatus.OK, "Xóa thành công sản phẩm với Id: " + cartItemId);
+        return new ResponseMessageDTO(HttpStatus.OK, "Xóa thành công sản phẩm với Id: " + cartItemId);
     }
 
     @Override

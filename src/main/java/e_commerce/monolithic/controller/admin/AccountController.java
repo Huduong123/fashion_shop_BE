@@ -1,5 +1,25 @@
 package e_commerce.monolithic.controller.admin;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import e_commerce.monolithic.dto.admin.AccountAdminDTO;
 import e_commerce.monolithic.dto.admin.AccountCreateAdminDTO;
 import e_commerce.monolithic.dto.admin.AccountUpdateAdminDTO;
@@ -7,16 +27,6 @@ import e_commerce.monolithic.dto.common.ResponseMessageDTO;
 import e_commerce.monolithic.exeption.NotFoundException;
 import e_commerce.monolithic.service.admin.AccountService;
 import jakarta.validation.Valid;
-import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
 
 // NOTE: Chỉ tài khoản có ROLE_SYSTEM mới truy cập được các API này (xem SecurityConfig)
 @RestController
@@ -29,14 +39,14 @@ public class AccountController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SYSTEM')")
     public ResponseEntity<List<AccountAdminDTO>> getAllAccounts() {
         List<AccountAdminDTO> accounts = accountService.getAllAccount();
         return ResponseEntity.ok(accounts);
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SYSTEM')")
     public ResponseEntity<?> getAccountById(@PathVariable Long id) {
         try {
             AccountAdminDTO account = accountService.getAccountById(id);
@@ -52,7 +62,7 @@ public class AccountController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SYSTEM')")
     public ResponseEntity<?> createAccount(@RequestBody @Valid AccountCreateAdminDTO accountCreateAdminDTO) {
         try {
             AccountAdminDTO createdAccount = accountService.createAccount(accountCreateAdminDTO);
@@ -68,7 +78,7 @@ public class AccountController {
     }
 
     @PutMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SYSTEM')")
     public ResponseEntity<?> updateAccount(@RequestBody @Valid AccountUpdateAdminDTO accountUpdateAdminDTO) {
         try {
             AccountAdminDTO updatedAccount = accountService.updateAccount(accountUpdateAdminDTO);
@@ -87,7 +97,7 @@ public class AccountController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SYSTEM')")
     public ResponseEntity<ResponseMessageDTO> deleteAccount(@PathVariable Long id) {
         try {
             accountService.deleteAccount(id);
@@ -108,7 +118,7 @@ public class AccountController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SYSTEM')")
     public ResponseEntity<?> toggleAccountStatus(@PathVariable Long id, @RequestBody Map<String, Boolean> request) {
         try {
             Boolean enabled = request.get("enabled");
@@ -130,7 +140,7 @@ public class AccountController {
     }
 
     @GetMapping("/search")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SYSTEM')")
     public ResponseEntity<List<AccountAdminDTO>> searchAccounts(
             @RequestParam(required = false) String username,
             @RequestParam(required = false) String email,
@@ -150,7 +160,7 @@ public class AccountController {
     }
 
     @PostMapping("/{id}/roles")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SYSTEM')")
     public ResponseEntity<?> addRoleToUser(@PathVariable Long id, @RequestBody Map<String, String> request) {
         try {
             String roleName = request.get("roleName");
@@ -175,7 +185,7 @@ public class AccountController {
     }
 
     @DeleteMapping("/{id}/roles/{roleName}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SYSTEM')")
     public ResponseEntity<?> removeRoleFromUser(@PathVariable Long id, @PathVariable String roleName) {
         try {
             if (roleName == null || roleName.trim().isEmpty()) {

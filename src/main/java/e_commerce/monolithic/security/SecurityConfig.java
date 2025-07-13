@@ -94,27 +94,9 @@ public class SecurityConfig {
         // Cần thay thế "*" bằng các origin cụ thể của frontend trong môi trường
         // production
         configuration.setAllowedOrigins(
-                Arrays.asList("http://localhost:8080", "http://your-frontend-domain.com", "http://localhost:5174")); // Cho
-                                                                                                                     // phép
-                                                                                                                     // từ
-                                                                                                                     // các
-                                                                                                                     // origin
-                                                                                                                     // cụ
-                                                                                                                     // thể,
-                                                                                                                     // hoặc
-                                                                                                                     // Arrays.asList("*")
-                                                                                                                     // cho
-                                                                                                                     // tất
-                                                                                                                     // cả
-                                                                                                                     // (chỉ
-                                                                                                                     // dev)
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")); // Các
-                                                                                                            // phương
-                                                                                                            // thức HTTP
-                                                                                                            // được cho
-                                                                                                            // phép
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept")); // Các header được
-                                                                                                   // cho phép
+                Arrays.asList("http://localhost:8080", "http://your-frontend-domain.com", "http://localhost:5174", "http://localhost:5173")); 
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")); 
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept")); 
         configuration.setAllowCredentials(true); // Cho phép gửi cookie hoặc HTTP authentication (nếu có)
         configuration.setMaxAge(3600L); // Thời gian cache cho pre-flight request
 

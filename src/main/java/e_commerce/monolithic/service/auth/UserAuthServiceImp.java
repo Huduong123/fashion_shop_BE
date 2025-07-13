@@ -118,7 +118,8 @@ public class UserAuthServiceImp implements UserAuthService {
 
     private void checkIsAdmin(User user) {
         boolean isAdmin = user.getAuthorities().stream()
-                .anyMatch(auth -> "ROLE_ADMIN".equals(auth.getAuthority()));
+                .anyMatch(
+                        auth -> "ROLE_ADMIN".equals(auth.getAuthority()) || "ROLE_SYSTEM".equals(auth.getAuthority()));
 
         if (!isAdmin) {
             throw new IllegalArgumentException("Access denied. You are not an admin");

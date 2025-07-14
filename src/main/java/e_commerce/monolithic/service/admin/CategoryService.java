@@ -13,9 +13,11 @@ public interface CategoryService {
 
     List<CategoryResponseDTO> findAll(String name, LocalDate createdAt, LocalDate updatedAt);
 
-    List<CategoryResponseDTO> findAll(String name, LocalDate createdAt, LocalDate updatedAt, Long parentId, Boolean isRoot);
+    List<CategoryResponseDTO> findAll(String name, LocalDate createdAt, LocalDate updatedAt, Long parentId,
+            Boolean isRoot);
 
-    List<CategoryResponseDTO> findAll(String name, LocalDate createdAt, LocalDate updatedAt, Long parentId, Boolean isRoot, CategoryType type);
+    List<CategoryResponseDTO> findAll(String name, LocalDate createdAt, LocalDate updatedAt, Long parentId,
+            Boolean isRoot, CategoryType type);
 
     List<CategoryResponseDTO> findRootCategories();
 
@@ -23,9 +25,11 @@ public interface CategoryService {
 
     CategoryResponseDTO findById(Long categoryId);
 
+    CategoryResponseDTO findBySlug(String slug);
+
     CategoryResponseDTO createCategory(CategoryCreateDTO categoryCreateDTO);
 
-    CategoryResponseDTO updateCategory(Long categoryId ,CategoryUpdateDTO categoryUpdateDTO);
+    CategoryResponseDTO updateCategory(Long categoryId, CategoryUpdateDTO categoryUpdateDTO);
 
     ResponseMessageDTO deleteCategory(Long categoryId);
 

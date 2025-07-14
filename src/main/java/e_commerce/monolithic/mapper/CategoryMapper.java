@@ -20,6 +20,7 @@ public class CategoryMapper {
         CategoryResponseDTO dto = new CategoryResponseDTO();
         dto.setId(category.getId());
         dto.setName(category.getName());
+        dto.setSlug(category.getSlug());
         dto.setDescription(category.getDescription());
         dto.setType(category.getType());
         dto.setStatus(category.getStatus());
@@ -49,6 +50,7 @@ public class CategoryMapper {
         CategoryResponseDTO dto = new CategoryResponseDTO(
                 category.getId(),
                 category.getName(),
+                category.getSlug(),
                 category.getDescription(),
                 category.getType(),
                 category.getStatus(),
@@ -84,6 +86,7 @@ public class CategoryMapper {
 
         return Category.builder()
                 .name(categoryCreateDTO.getName())
+                .slug(categoryCreateDTO.getSlug()) // Will be generated in service if null
                 .description(categoryCreateDTO.getDescription())
                 .type(categoryCreateDTO.getType())
                 .status(categoryCreateDTO.getStatus())
@@ -97,6 +100,9 @@ public class CategoryMapper {
         }
 
         existingCategory.setName(categoryUpdateDTO.getName());
+        if (categoryUpdateDTO.getSlug() != null) {
+            existingCategory.setSlug(categoryUpdateDTO.getSlug());
+        }
         existingCategory.setDescription(categoryUpdateDTO.getDescription());
         existingCategory.setType(categoryUpdateDTO.getType());
         existingCategory.setStatus(categoryUpdateDTO.getStatus());

@@ -10,6 +10,7 @@ import e_commerce.monolithic.exeption.NotFoundException;
 import e_commerce.monolithic.mapper.CategoryMapper;
 import e_commerce.monolithic.repository.CategoryRepository;
 import e_commerce.monolithic.specification.CategorySpecification;
+import e_commerce.monolithic.utils.SlugUtils;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -110,6 +111,22 @@ public class CategoryServiceImp implements CategoryService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public CategoryResponseDTO findBySlug(String slug) {
+        Category category = categoryRepository.findBySlug(slug)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy danh mục với slug: " + slug));
+
+        // Build DTO manually to avoid lazy loading issues
+        CategoryResponseDTO dto = categoryMapper.convertToDTOWithoutChildren(category);
+
+        // Count actual children categories
+        List<Category> children = categoryRepository.findByParentId(category.getId());
+        dto.setChildrenCount(children.size());
+
+        return dto;
+    }
+
+    @Override
     @Transactional
     public CategoryResponseDTO createCategory(CategoryCreateDTO categoryCreateDTO) {
         // Validate parent if specified
@@ -131,6 +148,16 @@ public class CategoryServiceImp implements CategoryService {
 
         // Convert DTO to Entity
         Category newCategory = categoryMapper.createDtoToEntity(categoryCreateDTO);
+
+        // Generate slug if not provided
+        if (newCategory.getSlug() == null || newCategory.getSlug().trim().isEmpty()) {
+            String baseSlug = SlugUtils.generateSlug(newCategory.getName());
+            String uniqueSlug = generateUniqueSlug(baseSlug);
+            newCategory.setSlug(uniqueSlug);
+        } else {
+            // Validate provided slug
+            checkSlugExistOnCreate(newCategory.getSlug());
+        }
 
         // Set parent if specified
         if (parentCategory != null) {
@@ -177,6 +204,20 @@ public class CategoryServiceImp implements CategoryService {
 
         // Update basic fields
         categoryMapper.updateDtoToEntity(existingCategory, categoryUpdateDTO);
+
+        // Handle slug update
+        if (categoryUpdateDTO.getSlug() == null || categoryUpdateDTO.getSlug().trim().isEmpty()) {
+            // If slug not provided, regenerate from name if name changed OR if existing
+            // category doesn't have slug
+            if (!existingCategory.getName().equals(categoryUpdateDTO.getName()) || existingCategory.getSlug() == null) {
+                String baseSlug = SlugUtils.generateSlug(categoryUpdateDTO.getName());
+                String uniqueSlug = generateUniqueSlugForUpdate(baseSlug, categoryId);
+                existingCategory.setSlug(uniqueSlug);
+            }
+        } else {
+            // Validate provided slug
+            checkSlugExistOnUpdate(categoryUpdateDTO.getSlug(), categoryId);
+        }
 
         // Update parent
         existingCategory.setParent(parentCategory);
@@ -288,6 +329,37 @@ public class CategoryServiceImp implements CategoryService {
                 throw new IllegalArgumentException("Không thể tạo vòng lặp trong cây danh mục");
             }
             current = current.getParent();
+        }
+    }
+
+    private String generateUniqueSlug(String baseSlug) {
+        java.util.Set<String> existingSlugs = categoryRepository.findAll()
+                .stream()
+                .map(Category::getSlug)
+                .collect(java.util.stream.Collectors.toSet());
+
+        return SlugUtils.generateUniqueSlug(baseSlug, existingSlugs);
+    }
+
+    private String generateUniqueSlugForUpdate(String baseSlug, Long categoryId) {
+        java.util.Set<String> existingSlugs = categoryRepository.findAll()
+                .stream()
+                .filter(category -> !category.getId().equals(categoryId)) // Exclude current category
+                .map(Category::getSlug)
+                .collect(java.util.stream.Collectors.toSet());
+
+        return SlugUtils.generateUniqueSlug(baseSlug, existingSlugs);
+    }
+
+    private void checkSlugExistOnCreate(String slug) {
+        if (categoryRepository.existsBySlug(slug)) {
+            throw new IllegalArgumentException("Slug '" + slug + "' đã được sử dụng");
+        }
+    }
+
+    private void checkSlugExistOnUpdate(String slug, Long categoryId) {
+        if (categoryRepository.existsBySlugAndIdNot(slug, categoryId)) {
+            throw new IllegalArgumentException("Slug '" + slug + "' đã được sử dụng");
         }
     }
 }

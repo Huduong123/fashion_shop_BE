@@ -16,6 +16,7 @@ public class CategoryResponseDTO {
 
     private Long id;
     private String name;
+    private String slug;
     private String description;
     private CategoryType type;
     private CategoryStatus status;
@@ -36,11 +37,13 @@ public class CategoryResponseDTO {
     private Integer childrenCount;
 
     // Constructor without children (for simple responses)
-    public CategoryResponseDTO(Long id, String name, String description, CategoryType type, CategoryStatus status,
+    public CategoryResponseDTO(Long id, String name, String slug, String description, CategoryType type,
+            CategoryStatus status,
             LocalDateTime createdAt, LocalDateTime updatedAt,
             Long parentId, String parentName) {
         this.id = id;
         this.name = name;
+        this.slug = slug;
         this.description = description;
         this.type = type;
         this.status = status;

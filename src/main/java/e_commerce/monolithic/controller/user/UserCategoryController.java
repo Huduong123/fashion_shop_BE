@@ -55,6 +55,12 @@ public class UserCategoryController {
         return ResponseEntity.ok(categoryResponseDTO);
     }
 
+    @GetMapping("/slug/{slug}")
+    public ResponseEntity<CategoryResponseDTO> getCategoryBySlug(@PathVariable String slug) {
+        CategoryResponseDTO categoryResponseDTO = categoryService.findBySlug(slug);
+        return ResponseEntity.ok(categoryResponseDTO);
+    }
+
     @GetMapping("/{id}/path")
     public ResponseEntity<List<CategoryResponseDTO>> getCategoryPath(@PathVariable Long id) {
         List<CategoryResponseDTO> path = categoryService.getCategoryPath(id);

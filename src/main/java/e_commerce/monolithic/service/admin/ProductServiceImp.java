@@ -22,12 +22,14 @@ import e_commerce.monolithic.dto.admin.product.ProductUpdateDTO;
 import e_commerce.monolithic.dto.admin.product.ProductVariantCreateDTO;
 import e_commerce.monolithic.dto.admin.product.ProductVariantUpdateDTO;
 import e_commerce.monolithic.dto.admin.product.ProductVariantSizeUpdateDTO;
+import e_commerce.monolithic.dto.admin.product.ProductVariantImageDTO;
 import e_commerce.monolithic.dto.common.ResponseMessageDTO;
 import e_commerce.monolithic.entity.BaseEntity;
 import e_commerce.monolithic.entity.Category;
 import e_commerce.monolithic.entity.Color;
 import e_commerce.monolithic.entity.Product;
 import e_commerce.monolithic.entity.ProductVariant;
+import e_commerce.monolithic.entity.ProductVariantImage;
 import e_commerce.monolithic.entity.ProductVariantSize;
 import e_commerce.monolithic.entity.Size;
 import e_commerce.monolithic.exeption.NotFoundException;
@@ -243,6 +245,9 @@ public class ProductServiceImp implements ProductService {
                 // Update ProductVariantSizes
                 updateProductVariantSizes(existingVariant, dto.getSizes());
 
+                // Update ProductVariantImages
+                updateProductVariantImages(existingVariant, dto.getImages());
+
                 finalVariants.add(existingVariant);
                 existingVariantsMap.remove(dto.getId());
             }
@@ -416,6 +421,38 @@ public class ProductServiceImp implements ProductService {
     private Size findSizeById(Long sizeId) {
         return sizeRepository.findById(sizeId)
                 .orElseThrow(() -> new NotFoundException(" Không tìm thấy kích thước với ID: " + sizeId));
+    }
+
+    private void updateProductVariantImages(ProductVariant variant, List<ProductVariantImageDTO> imageDTOs) {
+        if (imageDTOs == null) {
+            return;
+        }
+
+        // Clear existing images (orphanRemoval will handle deletion)
+        variant.getImages().clear();
+
+        // Add new images
+        for (int i = 0; i < imageDTOs.size(); i++) {
+            ProductVariantImageDTO imageDTO = imageDTOs.get(i);
+            ProductVariantImage image = ProductVariantImage.builder()
+                    .imageUrl(imageDTO.getImageUrl())
+                    .altText(imageDTO.getAltText() != null ? imageDTO.getAltText() : "")
+                    .isPrimary(imageDTO.isPrimary())
+                    .displayOrder(i) // Set order based on position in list
+                    .productVariant(variant)
+                    .build();
+
+            variant.addImage(image);
+        }
+
+        // Ensure at least one image is primary if images exist
+        if (!imageDTOs.isEmpty()) {
+            boolean hasPrimary = imageDTOs.stream().anyMatch(ProductVariantImageDTO::isPrimary);
+            if (!hasPrimary) {
+                // Set first image as primary
+                variant.getImages().get(0).setPrimary(true);
+            }
+        }
     }
 
 }

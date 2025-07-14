@@ -1,31 +1,26 @@
 package e_commerce.monolithic.specification;
 
-import e_commerce.monolithic.entity.Category;
-import e_commerce.monolithic.entity.Product;
-import e_commerce.monolithic.entity.ProductVariant;
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.Predicate;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Component;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Component;
+
+import e_commerce.monolithic.entity.Category;
+import e_commerce.monolithic.entity.Product;
+import e_commerce.monolithic.entity.ProductVariant;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.Predicate;
+
 @Component
 public class ProductSpecification {
 
-
-    public Specification<Product> findByCriteria(String name,
-                                                 BigDecimal minPrice,
-                                                 BigDecimal maxPrice,
-                                                 Integer minQuantity,
-                                                 Integer maxQuantity,
-                                                 Boolean enabled,
-                                                 Long categoryId,
-                                                 LocalDate createdAt,
-                                                 LocalDate updatedAt) {
+    public Specification<Product> findByCriteria(String name, BigDecimal minPrice, BigDecimal maxPrice,
+            Integer minQuantity, Integer maxQuantity,
+            Boolean enabled, Long categoryId,
+            LocalDate createdAt, LocalDate updatedAt) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -48,7 +43,8 @@ public class ProductSpecification {
 
             // tìm theo tên
             if (name != null && !name.trim().isEmpty()) {
-                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
+                predicates.add(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
             }
 
             // tìm theo trạng thái
@@ -63,12 +59,72 @@ public class ProductSpecification {
             }
             // tìm theo ngày tạo
             if (createdAt != null) {
-                predicates.add(criteriaBuilder.between(root.get("createdAt"), createdAt.atStartOfDay(), createdAt.atTime(23,59,59)));
+                predicates.add(criteriaBuilder.between(root.get("createdAt"), createdAt.atStartOfDay(),
+                        createdAt.atTime(23, 59, 59)));
             }
+            // tìm theo ngày cập nhật
             if (updatedAt != null) {
-                predicates.add(criteriaBuilder.between(root.get("updatedAt"), updatedAt.atStartOfDay(), updatedAt.atTime(23,59,59)));
+                predicates.add(criteriaBuilder.between(root.get("updatedAt"), updatedAt.atStartOfDay(),
+                        updatedAt.atTime(23, 59, 59)));
             }
+
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
+    }
+
+    /**
+     * Find products by category including all child categories (for DROPDOWN type
+     * categories)
+     * This method is used when we want to show all products from a parent category
+     * and its children
+     */
+    public Specification<Product> findByCategoryIncludingChildren(String name, BigDecimal minPrice, BigDecimal maxPrice,
+            Boolean enabled, List<Long> categoryIds,
+            LocalDate createdAt, LocalDate updatedAt) {
+        return (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // tìm theo tên
+            if (name != null && !name.trim().isEmpty()) {
+                predicates.add(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
+            }
+
+            // tìm theo trạng thái
+            if (enabled != null) {
+                predicates.add(criteriaBuilder.equal(root.get("enabled"), enabled));
+            }
+
+            // tìm theo danh mục (bao gồm children)
+            if (categoryIds != null && !categoryIds.isEmpty()) {
+                Join<Product, Category> categoryJoin = root.join("category");
+                predicates.add(categoryJoin.get("id").in(categoryIds));
+            }
+
+            // tìm theo ngày tạo
+            if (createdAt != null) {
+                predicates.add(criteriaBuilder.between(root.get("createdAt"), createdAt.atStartOfDay(),
+                        createdAt.atTime(23, 59, 59)));
+            }
+
+            // tìm theo ngày cập nhật
+            if (updatedAt != null) {
+                predicates.add(criteriaBuilder.between(root.get("updatedAt"), updatedAt.atStartOfDay(),
+                        updatedAt.atTime(23, 59, 59)));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+
+    /**
+     * Find products by exact category (for LINK type categories)
+     * This method is used when we want to show products from only a specific
+     * category
+     */
+    public Specification<Product> findByExactCategory(String name, BigDecimal minPrice, BigDecimal maxPrice,
+            Boolean enabled, Long categoryId,
+            LocalDate createdAt, LocalDate updatedAt) {
+        return findByCriteria(name, minPrice, maxPrice, null, null, enabled, categoryId, createdAt, updatedAt);
     }
 }

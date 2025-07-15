@@ -2,11 +2,10 @@ package e_commerce.monolithic.service.admin;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -20,9 +19,9 @@ import e_commerce.monolithic.dto.admin.product.ProductCreateDTO;
 import e_commerce.monolithic.dto.admin.product.ProductResponseDTO;
 import e_commerce.monolithic.dto.admin.product.ProductUpdateDTO;
 import e_commerce.monolithic.dto.admin.product.ProductVariantCreateDTO;
-import e_commerce.monolithic.dto.admin.product.ProductVariantUpdateDTO;
-import e_commerce.monolithic.dto.admin.product.ProductVariantSizeUpdateDTO;
 import e_commerce.monolithic.dto.admin.product.ProductVariantImageDTO;
+import e_commerce.monolithic.dto.admin.product.ProductVariantSizeUpdateDTO;
+import e_commerce.monolithic.dto.admin.product.ProductVariantUpdateDTO;
 import e_commerce.monolithic.dto.common.ResponseMessageDTO;
 import e_commerce.monolithic.entity.BaseEntity;
 import e_commerce.monolithic.entity.Category;
@@ -113,10 +112,10 @@ public class ProductServiceImp implements ProductService {
         Product newProduct = productMapper.convertCreateDtoToEntity(productCreateDTO, category);
 
         // xử lí biến tể
-        Set<ProductVariant> variants = productCreateDTO.getProductVariants()
+        List<ProductVariant> variants = productCreateDTO.getProductVariants()
                 .stream()
                 .map(this::createVariantFromDTO)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toList());
 
         // thiết lập quan hệ hai chiều
         variants.forEach(variant -> variant.setProduct(newProduct));
@@ -226,7 +225,7 @@ public class ProductServiceImp implements ProductService {
                 .collect(Collectors.toMap(BaseEntity::getId, Function.identity()));
 
         // Set để lưu các biến thể cuối cùng (đã cập nhật, mới, hoặc giữ nguyên)
-        Set<ProductVariant> finalVariants = new HashSet<>();
+        List<ProductVariant> finalVariants = new ArrayList<>();
 
         for (ProductVariantUpdateDTO dto : variantDTOs) {
             // Trường hợp 1: Cập nhật biến thể đã có (DTO có ID)
@@ -293,7 +292,7 @@ public class ProductServiceImp implements ProductService {
                 .collect(Collectors.toMap(BaseEntity::getId, Function.identity()));
 
         // Set to store final sizes
-        Set<ProductVariantSize> finalSizes = new HashSet<>();
+        List<ProductVariantSize> finalSizes = new ArrayList<>();
 
         for (ProductVariantSizeUpdateDTO sizeDTO : sizeUpdateDTOs) {
             if (sizeDTO.getId() != null) {
@@ -427,30 +426,63 @@ public class ProductServiceImp implements ProductService {
         if (imageDTOs == null) {
             return;
         }
-
-        // Clear existing images (orphanRemoval will handle deletion)
-        variant.getImages().clear();
-
-        // Add new images
+    
+        // --- BƯỚC 1: Lưu lại ID của ảnh chính hiện tại (nếu có) trước khi xóa ---
+        Long currentPrimaryImageId = variant.getImages().stream()
+                .filter(ProductVariantImage::isPrimary)
+                .findFirst()
+                .map(BaseEntity::getId)
+                .orElse(null);
+    
+        // --- BƯỚC 2: Map các DTO mới gửi lên bằng ID của chúng (nếu có) ---
+        Map<Long, ProductVariantImageDTO> dtoMap = imageDTOs.stream()
+                .filter(dto -> dto.getId() != null)
+                .collect(Collectors.toMap(ProductVariantImageDTO::getId, Function.identity()));
+    
+        // --- BƯỚC 3: Xóa các ảnh cũ và thêm/cập nhật ảnh mới ---
+        variant.getImages().clear(); // orphanRemoval sẽ xóa các ảnh không còn trong list
+    
+        List<ProductVariantImage> finalImages = new ArrayList<>();
         for (int i = 0; i < imageDTOs.size(); i++) {
             ProductVariantImageDTO imageDTO = imageDTOs.get(i);
             ProductVariantImage image = ProductVariantImage.builder()
                     .imageUrl(imageDTO.getImageUrl())
                     .altText(imageDTO.getAltText() != null ? imageDTO.getAltText() : "")
-                    .isPrimary(imageDTO.isPrimary())
-                    .displayOrder(i) // Set order based on position in list
+                    .isPrimary(imageDTO.isPrimary()) // Lấy trạng thái isPrimary từ DTO
+                    .displayOrder(i)
                     .productVariant(variant)
                     .build();
-
-            variant.addImage(image);
+            finalImages.add(image);
         }
-
-        // Ensure at least one image is primary if images exist
-        if (!imageDTOs.isEmpty()) {
-            boolean hasPrimary = imageDTOs.stream().anyMatch(ProductVariantImageDTO::isPrimary);
-            if (!hasPrimary) {
-                // Set first image as primary
-                variant.getImages().get(0).setPrimary(true);
+        variant.getImages().addAll(finalImages);
+    
+    
+        // --- BƯỚC 4: Logic đặt ảnh chính một cách "thông minh" ---
+        if (!variant.getImages().isEmpty()) {
+            // Kiểm tra xem frontend có chỉ định ảnh chính mới không
+            boolean newPrimaryExists = variant.getImages().stream().anyMatch(ProductVariantImage::isPrimary);
+    
+            if (!newPrimaryExists) {
+                // Nếu frontend không chỉ định, hãy thử khôi phục ảnh chính cũ
+                boolean restored = false;
+                if (currentPrimaryImageId != null) {
+                    // Kiểm tra xem ảnh chính cũ có còn trong danh sách DTO mới không
+                    if (dtoMap.containsKey(currentPrimaryImageId)) {
+                         // Tìm lại ảnh tương ứng trong `finalImages` và đặt nó làm ảnh chính
+                        variant.getImages().stream()
+                            .filter(img -> img.getImageUrl().equals(dtoMap.get(currentPrimaryImageId).getImageUrl()))
+                            .findFirst()
+                            .ifPresent(img -> {
+                                img.setPrimary(true);
+                            });
+                        restored = true;
+                    }
+                }
+                
+                // Nếu không thể khôi phục (ảnh chính cũ đã bị xóa), thì mới đặt ảnh đầu tiên làm ảnh chính
+                if(!restored){
+                    variant.getImages().get(0).setPrimary(true);
+                }
             }
         }
     }

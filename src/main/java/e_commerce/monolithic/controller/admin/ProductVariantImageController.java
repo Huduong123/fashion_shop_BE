@@ -91,10 +91,10 @@ public class ProductVariantImageController {
      * PUT /api/admin/product-variants/images/{imageId}/set-primary
      */
     @PutMapping("/images/{imageId}/set-primary")
-    public ResponseEntity<ResponseMessageDTO> setPrimaryImage(@PathVariable Long imageId) {
-        ResponseMessageDTO response = imageService.setPrimaryImage(imageId);
-        return ResponseEntity.ok(response);
-    }
+    public ResponseEntity<List<ProductVariantImageDTO>> setPrimaryImage(@PathVariable Long imageId) {
+        List<ProductVariantImageDTO> updatedImages = imageService.setPrimaryImage(imageId);
+        return ResponseEntity.ok(updatedImages);
+     }
 
     /**
      * Reorder images for a variant

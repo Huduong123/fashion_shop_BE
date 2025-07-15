@@ -103,7 +103,7 @@ public class ProductVariantImageServiceImp implements ProductVariantImageService
 
     @Override
     @Transactional
-    public ResponseMessageDTO setPrimaryImage(Long imageId) {
+    public List<ProductVariantImageDTO> setPrimaryImage(Long imageId) {
         ProductVariantImage image = findImageById(imageId);
         Long variantId = image.getProductVariant().getId();
 
@@ -114,7 +114,7 @@ public class ProductVariantImageServiceImp implements ProductVariantImageService
         image.setPrimary(true);
         imageRepository.save(image);
 
-        return new ResponseMessageDTO(HttpStatus.OK, "Đặt ảnh chính thành công");
+        return getImagesByVariantId(variantId);
     }
 
     @Override

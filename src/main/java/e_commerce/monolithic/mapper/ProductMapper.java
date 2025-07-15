@@ -1,16 +1,16 @@
 package e_commerce.monolithic.mapper;
 
+import java.util.ArrayList;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Component;
+
 import e_commerce.monolithic.dto.admin.product.ProductCreateDTO;
 import e_commerce.monolithic.dto.admin.product.ProductResponseDTO;
 import e_commerce.monolithic.dto.admin.product.ProductUpdateDTO;
 import e_commerce.monolithic.entity.Category;
 import e_commerce.monolithic.entity.Product;
-import e_commerce.monolithic.entity.ProductVariant;
 import e_commerce.monolithic.repository.ProductRepository;
-import org.springframework.stereotype.Component;
-
-import java.util.HashSet;
-import java.util.stream.Collectors;
 
 @Component
 public class ProductMapper {
@@ -68,7 +68,7 @@ public class ProductMapper {
                 .description(productCreateDTO.getDescription())
                 .enabled(productCreateDTO.getEnabled())
                 .category(category)
-                .productVariants(new HashSet<>())
+                .productVariants(new ArrayList<>())
                 .build();
     }
 

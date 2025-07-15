@@ -15,7 +15,7 @@ public interface ProductVariantImageService {
 
     ResponseMessageDTO deleteImage(Long imageId);
 
-    ResponseMessageDTO setPrimaryImage(Long imageId);
+    List<ProductVariantImageDTO> setPrimaryImage(Long imageId);
 
     ProductVariantImageDTO getPrimaryImage(Long variantId);
 

@@ -1,14 +1,17 @@
 package e_commerce.monolithic.dto.admin.product;
 
+import java.util.List;
+
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
-import java.util.List;
-
+// Sửa lại class ProductUpdateDTO
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

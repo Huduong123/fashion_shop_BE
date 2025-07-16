@@ -1,22 +1,26 @@
 package e_commerce.monolithic.specification;
 
+import e_commerce.monolithic.entity.Category;
+import e_commerce.monolithic.entity.Product;
+import e_commerce.monolithic.entity.ProductVariant;
+import e_commerce.monolithic.entity.ProductVariantSize; // Bổ sung import
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Component;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Component;
-
-import e_commerce.monolithic.entity.Category;
-import e_commerce.monolithic.entity.Product;
-import e_commerce.monolithic.entity.ProductVariant;
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.Predicate;
-
 @Component
 public class ProductSpecification {
 
+    /**
+     * Tạo Specification để tìm kiếm Product dựa trên nhiều tiêu chí.
+     * Đã sửa lỗi lọc giá bằng cách join đến ProductVariantSize.
+     */
     public Specification<Product> findByCriteria(String name, BigDecimal minPrice, BigDecimal maxPrice,
             Integer minQuantity, Integer maxQuantity,
             Boolean enabled, Long categoryId,
@@ -24,30 +28,45 @@ public class ProductSpecification {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            if (minPrice != null || maxPrice != null || minQuantity != null || maxQuantity != null) {
+            // ================== SỬA LỖI LỌC GIÁ ==================
+            // Nếu có điều kiện lọc theo giá, ta cần join qua các bảng
+            // Product -> ProductVariant -> ProductVariantSize
+            if (minPrice != null || maxPrice != null) {
                 Join<Product, ProductVariant> variantJoin = root.join("productVariants");
+                Join<ProductVariant, ProductVariantSize> variantSizeJoin = variantJoin.join("productVariantSizes");
+
                 if (minPrice != null) {
-                    predicates.add(criteriaBuilder.greaterThanOrEqualTo(variantJoin.get("price"), minPrice));
+                    predicates.add(criteriaBuilder.greaterThanOrEqualTo(variantSizeJoin.get("price"), minPrice));
                 }
                 if (maxPrice != null) {
-                    predicates.add(criteriaBuilder.lessThanOrEqualTo(variantJoin.get("price"), maxPrice));
+                    predicates.add(criteriaBuilder.lessThanOrEqualTo(variantSizeJoin.get("price"), maxPrice));
                 }
+                // Thêm distinct() để đảm bảo mỗi sản phẩm chỉ xuất hiện một lần
+                // dù nó có nhiều size khớp với điều kiện giá.
+                query.distinct(true);
+            }
+            // =======================================================
+
+            // Lọc theo số lượng (cũng cần join đến ProductVariantSize)
+            if (minQuantity != null || maxQuantity != null) {
+                Join<Product, ProductVariant> variantJoin = root.join("productVariants");
+                Join<ProductVariant, ProductVariantSize> variantSizeJoin = variantJoin.join("productVariantSizes");
                 if (minQuantity != null) {
-                    predicates.add(criteriaBuilder.greaterThanOrEqualTo(variantJoin.get("quantity"), minQuantity));
+                    predicates.add(criteriaBuilder.greaterThanOrEqualTo(variantSizeJoin.get("quantity"), minQuantity));
                 }
                 if (maxQuantity != null) {
-                    predicates.add(criteriaBuilder.lessThanOrEqualTo(variantJoin.get("quantity"), maxQuantity));
+                    predicates.add(criteriaBuilder.lessThanOrEqualTo(variantSizeJoin.get("quantity"), maxQuantity));
                 }
                 query.distinct(true);
             }
 
-            // tìm theo tên
+            // tìm theo tên sản phẩm
             if (name != null && !name.trim().isEmpty()) {
                 predicates.add(
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
             }
 
-            // tìm theo trạng thái
+            // tìm theo trạng thái (enabled)
             if (enabled != null) {
                 predicates.add(criteriaBuilder.equal(root.get("enabled"), enabled));
             }
@@ -73,10 +92,8 @@ public class ProductSpecification {
     }
 
     /**
-     * Find products by category including all child categories (for DROPDOWN type
-     * categories)
-     * This method is used when we want to show all products from a parent category
-     * and its children
+     * Tìm sản phẩm theo danh mục, bao gồm cả các danh mục con.
+     * Đã sửa lỗi lọc giá tương tự như findByCriteria.
      */
     public Specification<Product> findByCategoryIncludingChildren(String name, BigDecimal minPrice, BigDecimal maxPrice,
             Boolean enabled, List<Long> categoryIds,
@@ -84,6 +101,20 @@ public class ProductSpecification {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
+            // ================== SỬA LỖI LỌC GIÁ ==================
+            if (minPrice != null || maxPrice != null) {
+                Join<Product, ProductVariant> variantJoin = root.join("productVariants");
+                Join<ProductVariant, ProductVariantSize> variantSizeJoin = variantJoin.join("productVariantSizes");
+                if (minPrice != null) {
+                    predicates.add(criteriaBuilder.greaterThanOrEqualTo(variantSizeJoin.get("price"), minPrice));
+                }
+                if (maxPrice != null) {
+                    predicates.add(criteriaBuilder.lessThanOrEqualTo(variantSizeJoin.get("price"), maxPrice));
+                }
+                query.distinct(true);
+            }
+            // =======================================================
+            
             // tìm theo tên
             if (name != null && !name.trim().isEmpty()) {
                 predicates.add(
@@ -118,9 +149,8 @@ public class ProductSpecification {
     }
 
     /**
-     * Find products by exact category (for LINK type categories)
-     * This method is used when we want to show products from only a specific
-     * category
+     * Tìm sản phẩm theo một danh mục chính xác (cho danh mục loại LINK).
+     * Phương thức này gọi lại findByCriteria đã được sửa lỗi.
      */
     public Specification<Product> findByExactCategory(String name, BigDecimal minPrice, BigDecimal maxPrice,
             Boolean enabled, Long categoryId,

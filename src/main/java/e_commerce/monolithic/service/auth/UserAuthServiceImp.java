@@ -16,6 +16,7 @@ import e_commerce.monolithic.dto.auth.AdminLoginResponseDTO;
 import e_commerce.monolithic.dto.auth.UserLoginDTO;
 import e_commerce.monolithic.dto.auth.UserLoginResponseDTO;
 import e_commerce.monolithic.dto.auth.UserRegisterDTO;
+import e_commerce.monolithic.dto.auth.UserReponseDTO;
 import e_commerce.monolithic.entity.Authority;
 import e_commerce.monolithic.entity.User;
 import e_commerce.monolithic.exeption.AuthenticationFailedException;
@@ -68,9 +69,9 @@ public class UserAuthServiceImp implements UserAuthService {
 
         // Tạo token với cả username và roles
         String token = jwtUtil.generateToken(user.getUsername(), roles);
-
+        UserReponseDTO userReponseDTO = userMapper.converToDTO(user);
         // Trả về DTO chứa token, username và roles
-        return new UserLoginResponseDTO(token, user.getUsername(), roles);
+        return new UserLoginResponseDTO(token, userReponseDTO);
     }
 
     @Override

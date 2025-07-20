@@ -1,7 +1,6 @@
 package e_commerce.monolithic.dto.admin.product;
 
 import java.math.BigDecimal;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,7 +11,7 @@ import lombok.NoArgsConstructor;
 public class ProductVariantSizeResponseDTO {
 
     private Long id;
-    private Long sizeId;
+
     private String sizeName;
     private BigDecimal price;
     private Integer quantity;

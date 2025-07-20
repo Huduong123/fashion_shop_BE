@@ -96,5 +96,14 @@ public class CartController {
         return ResponseEntity.ok(response);
     }
 
-
+    /**
+     * API 8: Đồng bộ giỏ hàng từ localStorage của khách vào giỏ hàng của người dùng.
+     */
+    @PostMapping("/sync")
+    public ResponseEntity<ResponseMessageDTO> syncCart(
+            @RequestBody List<CartItemCreateDTO> itemsToSync,
+            Principal principal) {
+        ResponseMessageDTO response = cartService.syncCart(principal.getName(), itemsToSync);
+        return ResponseEntity.ok(response);
+    }
 }

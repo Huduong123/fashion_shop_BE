@@ -3,7 +3,6 @@ package e_commerce.monolithic.service.user;
 import e_commerce.monolithic.dto.common.ResponseMessageDTO;
 import e_commerce.monolithic.dto.user.cart_item.CartItemCreateDTO;
 import e_commerce.monolithic.dto.user.cart_item.CartItemResponseDTO;
-
 import java.util.List;
 
 public interface CartService {
@@ -28,4 +27,13 @@ public interface CartService {
 
 
     ResponseMessageDTO clearCart (String username);
+
+    /**
+ * Đồng bộ hóa một danh sách các sản phẩm (từ localStorage của khách)
+ * vào giỏ hàng của người dùng đã đăng nhập.
+ * @param username Tên người dùng.
+ * @param itemsToSync Danh sách các sản phẩm cần đồng bộ.
+ * @return ResponseMessageDTO cho biết kết quả.
+ */
+ResponseMessageDTO syncCart(String username, List<CartItemCreateDTO> itemsToSync);
 }

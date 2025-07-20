@@ -3,10 +3,9 @@ package e_commerce.monolithic.mapper;
 import e_commerce.monolithic.dto.user.cart_item.CartItemResponseDTO;
 import e_commerce.monolithic.entity.CartItem;
 import e_commerce.monolithic.entity.ProductVariantSize;
-import org.springframework.stereotype.Component;
-
 import java.math.BigDecimal;
 import java.util.Optional;
+import org.springframework.stereotype.Component;
 
 @Component
 public class CartItemMapper {
@@ -28,20 +27,22 @@ public class CartItemMapper {
 
         BigDecimal price = productVariantSize.map(ProductVariantSize::getPrice)
                 .orElse(BigDecimal.ZERO);
-
+        Integer stock = productVariantSize.map(ProductVariantSize::getQuantity).orElse(0);
         BigDecimal subTotal = price.multiply(new BigDecimal(cartItem.getQuantity()));
 
         return CartItemResponseDTO.builder()
                 .id(cartItem.getId())
+                .productId(product.getId())
                 .productVariantId(variant.getId())
                 .sizeId(size.getId())
                 .productName(product.getName())
                 .colorName(color.getName())
                 .sizeName(size.getName())
-                .imageUrl(variant.getImageUrl())
+                .imageUrl(variant.getPrimaryImageUrl())
                 .price(price)
                 .quantity(cartItem.getQuantity())
                 .subTotal(subTotal)
+                .stock(stock)
                 .build();
     }
 }

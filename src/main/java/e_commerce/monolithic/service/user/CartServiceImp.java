@@ -219,4 +219,27 @@ public class CartServiceImp implements CartService {
 
         return new ResponseMessageDTO(HttpStatus.OK, "Đã xóa tất cả sản phẩm khỏi giỏ hàng thành công");
     }
+
+     @Override
+    @Transactional // Đảm bảo tất cả các hoạt động được thực hiện trong một giao dịch duy nhất
+    public ResponseMessageDTO syncCart(String username, List<CartItemCreateDTO> itemsToSync) {
+        if (itemsToSync == null || itemsToSync.isEmpty()) {
+            return new ResponseMessageDTO(HttpStatus.OK, "Không có sản phẩm nào để đồng bộ.");
+        }
+
+        // Lặp qua từng sản phẩm từ giỏ hàng của khách
+        for (CartItemCreateDTO item : itemsToSync) {
+            try {
+                // Tái sử dụng hoàn toàn logic thêm sản phẩm đã có
+                // Nó sẽ tự động kiểm tra và cộng dồn số lượng nếu cần
+                addProductToCart(username, item);
+            } catch (Exception e) {
+                // Ghi log lỗi nhưng vẫn tiếp tục với các sản phẩm khác
+                // Hoặc bạn có thể quyết định dừng lại và báo lỗi ngay lập tức
+                System.err.println("Lỗi khi đồng bộ sản phẩm: " + item.getProductVariantId() + " - " + e.getMessage());
+            }
+        }
+
+        return new ResponseMessageDTO(HttpStatus.OK, "Đồng bộ giỏ hàng thành công.");
+    }
 }

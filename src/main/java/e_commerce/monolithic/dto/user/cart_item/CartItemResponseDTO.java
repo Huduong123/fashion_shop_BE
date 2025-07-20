@@ -1,7 +1,6 @@
 package e_commerce.monolithic.dto.user.cart_item;
 
 import java.math.BigDecimal;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,6 +13,7 @@ import lombok.NoArgsConstructor;
 public class CartItemResponseDTO {
     private Long id;
 
+    private Long productId;
     private Long productVariantId;
     private Long sizeId;
 
@@ -24,5 +24,5 @@ public class CartItemResponseDTO {
     private BigDecimal price;
     private int quantity;
     private BigDecimal subTotal;
-
+    private Integer stock;
 }

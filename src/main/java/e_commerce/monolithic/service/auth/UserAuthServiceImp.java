@@ -50,29 +50,32 @@ public class UserAuthServiceImp implements UserAuthService {
         this.userValidationService = userValidationService;
     }
 
-    @Override
-    @Transactional
-    public UserLoginResponseDTO login(UserLoginDTO userLoginDTO) {
-        User user = userValidationService.findByUsername(userLoginDTO.getUsername())
-                .orElseThrow(() -> {
-                    logger.error("User not found with username: " + userLoginDTO.getUsername());
-                    return new EntityNotFoundException("User not found with username: " + userLoginDTO.getUsername());
-                });
+@Override
+@Transactional
+public UserLoginResponseDTO login(UserLoginDTO userLoginDTO) {
+    // Tìm kiếm người dùng nhưng không ném lỗi ngay lập tức
+    Optional<User> userOptional = userValidationService.findByUsername(userLoginDTO.getUsername());
 
-        validatePasswordInvalid(userLoginDTO.getPassword(), user);
-        validateEnabled(user);
-
-        // Lấy danh sách roles của user
-        List<String> roles = user.getAuthorities().stream()
-                .map(Authority::getAuthority)
-                .collect(Collectors.toList());
-
-        // Tạo token với cả username và roles
-        String token = jwtUtil.generateToken(user.getUsername(), roles);
-        UserReponseDTO userReponseDTO = userMapper.converToDTO(user);
-        // Trả về DTO chứa token, username và roles
-        return new UserLoginResponseDTO(token, userReponseDTO);
+    // Nếu không tìm thấy người dùng hoặc mật khẩu không khớp, ném ra cùng một lỗi
+    if (userOptional.isEmpty() || !userValidationService.isPasswordMatch(userLoginDTO.getPassword(), userOptional.get().getPassword())) {
+        throw new AuthenticationFailedException("Tài khoản hoặc mật khẩu không chính xác.");
     }
+
+    User user = userOptional.get();
+    validateEnabled(user); // Vẫn kiểm tra xem tài khoản có bị vô hiệu hóa không
+
+    // Lấy danh sách roles của user
+    List<String> roles = user.getAuthorities().stream()
+            .map(Authority::getAuthority)
+            .collect(Collectors.toList());
+
+    // Tạo token với cả username và roles
+    String token = jwtUtil.generateToken(user.getUsername(), roles);
+    UserReponseDTO userReponseDTO = userMapper.converToDTO(user);
+
+    // Trả về DTO chứa token, username và roles
+    return new UserLoginResponseDTO(token, userReponseDTO);
+}
 
     @Override
     @Transactional
@@ -116,7 +119,11 @@ public class UserAuthServiceImp implements UserAuthService {
             throw new IllegalArgumentException("Account is disabled");
         }
     }
-
+private void validatePasswordInvalid(String rawPassword, User user) {
+    if (!userValidationService.isPasswordMatch(rawPassword, user.getPassword())) {
+        throw new IllegalArgumentException("Invalid password");
+    }
+} 
     private void checkIsAdmin(User user) {
         boolean isAdmin = user.getAuthorities().stream()
                 .anyMatch(
@@ -127,11 +134,7 @@ public class UserAuthServiceImp implements UserAuthService {
         }
     }
 
-    private void validatePasswordInvalid(String rawPassword, User user) {
-        if (!userValidationService.isPasswordMatch(rawPassword, user.getPassword())) { // Sử dụng service chung
-            throw new IllegalArgumentException("Invalid password");
-        }
-    }
+
 
     @Override
     @Transactional

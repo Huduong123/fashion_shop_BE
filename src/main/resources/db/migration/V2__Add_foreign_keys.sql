@@ -1,4 +1,4 @@
--- V2__Add_foreign_keys.sql - PHIÊN BẢN ĐÃ CẬP NHẬT
+-- V2__Add_foreign_keys.sql (MySQL) - PHIÊN BẢN GỐC (KHÔNG ĐỔI)
 
 -- Foreign key for authorities
 ALTER TABLE authorities ADD CONSTRAINT fk_authorities_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;

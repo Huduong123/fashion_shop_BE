@@ -9,7 +9,7 @@ import org.springframework.data.domain.Pageable;
 public interface UserOrderService {
 
     // lấy danh sách đơn hàng (phân trang)
-    Page<OrderSummaryDTO> getOrdersForUser(String username, Pageable pageable);
+    Page<OrderResponseDTO> getOrdersForUser(String username, Pageable pageable);
 
     // tạo đơn đơn hàng từ giỏ hàng
     OrderResponseDTO createOrderFromCart(String username);
@@ -19,6 +19,5 @@ public interface UserOrderService {
 
     // hủy đơn hàng
     ResponseMessageDTO cancelOrder(String username, Long orderid);
-
 
 }

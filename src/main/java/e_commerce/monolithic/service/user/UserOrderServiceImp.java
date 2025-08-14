@@ -1,15 +1,9 @@
 package e_commerce.monolithic.service.user;
 
-import e_commerce.monolithic.dto.common.ResponseMessageDTO;
-import e_commerce.monolithic.dto.user.order.OrderResponseDTO;
-import e_commerce.monolithic.dto.user.order.OrderSummaryDTO;
-import e_commerce.monolithic.entity.*;
-import e_commerce.monolithic.entity.enums.OrderStatus;
-import e_commerce.monolithic.exeption.NotFoundException;
-import e_commerce.monolithic.mapper.OrderMapper;
-import e_commerce.monolithic.repository.CartItemRepository;
-import e_commerce.monolithic.repository.OrderRepository;
-import e_commerce.monolithic.repository.UserRepository;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -17,9 +11,22 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Optional;
+import e_commerce.monolithic.dto.common.ResponseMessageDTO;
+import e_commerce.monolithic.dto.user.order.OrderResponseDTO;
+import e_commerce.monolithic.dto.user.order.OrderSummaryDTO;
+import e_commerce.monolithic.entity.CartItem;
+import e_commerce.monolithic.entity.Order;
+import e_commerce.monolithic.entity.OrderItem;
+import e_commerce.monolithic.entity.ProductVariant;
+import e_commerce.monolithic.entity.ProductVariantSize;
+import e_commerce.monolithic.entity.Size;
+import e_commerce.monolithic.entity.User;
+import e_commerce.monolithic.entity.enums.OrderStatus;
+import e_commerce.monolithic.exeption.NotFoundException;
+import e_commerce.monolithic.mapper.OrderMapper;
+import e_commerce.monolithic.repository.CartItemRepository;
+import e_commerce.monolithic.repository.OrderRepository;
+import e_commerce.monolithic.repository.UserRepository;
 
 @Service
 public class UserOrderServiceImp implements UserOrderService {
@@ -29,7 +36,8 @@ public class UserOrderServiceImp implements UserOrderService {
     private final CartItemRepository cartItemRepository;
     private final OrderMapper orderMapper;
 
-    public UserOrderServiceImp(OrderRepository orderRepository, UserRepository userRepository, CartItemRepository cartItemRepository, OrderMapper orderMapper) {
+    public UserOrderServiceImp(OrderRepository orderRepository, UserRepository userRepository,
+            CartItemRepository cartItemRepository, OrderMapper orderMapper) {
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
         this.cartItemRepository = cartItemRepository;
@@ -38,11 +46,11 @@ public class UserOrderServiceImp implements UserOrderService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<OrderSummaryDTO> getOrdersForUser(String username, Pageable pageable) {
-        User user =findUserByUsername(username);
+    public Page<OrderResponseDTO> getOrdersForUser(String username, Pageable pageable) {
+        User user = findUserByUsername(username);
         Page<Order> ordersPage = orderRepository.findByUserId(user.getId(), pageable);
 
-        return ordersPage.map(orderMapper::convertToOrderSummaryDTO);
+        return ordersPage.map(orderMapper::convertToOrderDTO);
     }
 
     @Override
@@ -89,12 +97,14 @@ public class UserOrderServiceImp implements UserOrderService {
 
     // hàm check
     private User findUserByUsername(String username) {
-        return userRepository.findByUsername(username).orElseThrow(() -> new NotFoundException("Không tìm thấy người dùng: " + username));
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy người dùng: " + username));
     }
 
     // tìm order theo id
     private Order findOrderById(Long orderId) {
-        return orderRepository.findById(orderId).orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng với ID: " + orderId));
+        return orderRepository.findById(orderId)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy đơn hàng với ID: " + orderId));
     }
 
     // tìm order chi tiết theo id và user id
@@ -107,7 +117,7 @@ public class UserOrderServiceImp implements UserOrderService {
     private List<CartItem> findAndValidateCartItem(Long userId) {
         List<CartItem> cartItems = cartItemRepository.findByUserIdWithDetails(userId);
         if (cartItems.isEmpty()) {
-            throw  new IllegalArgumentException("Giỏ hàng của bạn đang trống. Không th tạo đơn hàng");
+            throw new IllegalArgumentException("Giỏ hàng của bạn đang trống. Không th tạo đơn hàng");
         }
         return cartItems;
     }
@@ -129,10 +139,11 @@ public class UserOrderServiceImp implements UserOrderService {
 
             // Tìm ProductVariantSize tương ứng
             ProductVariantSize productVariantSize = findProductVariantSize(productVariant, size);
-            
+
             checkAndReduceStock(productVariantSize, requestedQuantity);
 
-            OrderItem orderItem = createOrderItem(newOrder, productVariant, size, requestedQuantity, productVariantSize.getPrice());
+            OrderItem orderItem = createOrderItem(newOrder, productVariant, size, requestedQuantity,
+                    productVariantSize.getPrice());
 
             newOrder.getOrderItems().add(orderItem);
 
@@ -160,14 +171,16 @@ public class UserOrderServiceImp implements UserOrderService {
     // kiểm tra tồn kho và giảm số lượng sản phẩm
     private void checkAndReduceStock(ProductVariantSize productVariantSize, int requestedQuantity) {
         if (productVariantSize.getQuantity() < requestedQuantity) {
-            throw new IllegalArgumentException(String.format("Sản phẩm '%s' không đủ số lượng. Chỉ còn %d sản phẩm trong kho.",
+            throw new IllegalArgumentException(String.format(
+                    "Sản phẩm '%s' không đủ số lượng. Chỉ còn %d sản phẩm trong kho.",
                     productVariantSize.getProductVariant().getProduct().getName(), productVariantSize.getQuantity()));
         }
         productVariantSize.setQuantity(productVariantSize.getQuantity() - requestedQuantity);
     }
 
     // tạo 1 đối tượng order item
-    private OrderItem createOrderItem(Order order, ProductVariant productVariant, Size size, int quantity, BigDecimal price) {
+    private OrderItem createOrderItem(Order order, ProductVariant productVariant, Size size, int quantity,
+            BigDecimal price) {
         return OrderItem.builder()
                 .order(order)
                 .productVariant(productVariant)
@@ -176,10 +189,10 @@ public class UserOrderServiceImp implements UserOrderService {
                 .price(price)
                 .build();
     }
-    
+
     // kiểm tra user có phải là chủ sở hữu order không
     private void checkOwnerShip(Order order, User user) {
-        if(!order.getUser().getId().equals(user.getId())) {
+        if (!order.getUser().getId().equals(user.getId())) {
             throw new AccessDeniedException("Bạn không có quyền thực hiện thao tác trên đơn hàng này");
         }
     }
@@ -196,7 +209,7 @@ public class UserOrderServiceImp implements UserOrderService {
         for (OrderItem item : order.getOrderItems()) {
             ProductVariant productVariant = item.getProductVariant();
             Size size = item.getSize();
-            
+
             // Tìm ProductVariantSize tương ứng
             ProductVariantSize productVariantSize = findProductVariantSize(productVariant, size);
             productVariantSize.setQuantity(productVariantSize.getQuantity() + item.getQuantity());

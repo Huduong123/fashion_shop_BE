@@ -1,13 +1,14 @@
 package e_commerce.monolithic.mapper;
 
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Component;
+
 import e_commerce.monolithic.dto.user.order.OrderItemResponseDTO;
 import e_commerce.monolithic.dto.user.order.OrderResponseDTO;
 import e_commerce.monolithic.dto.user.order.OrderSummaryDTO;
 import e_commerce.monolithic.entity.Order;
 import e_commerce.monolithic.entity.OrderItem;
-import org.springframework.stereotype.Component;
-
-import java.util.stream.Collectors;
 
 @Component
 public class OrderMapper {
@@ -23,7 +24,7 @@ public class OrderMapper {
                 .productName(product.getName())
                 .colorName(variant.getColor().getName())
                 .sizeName(size.getName())
-                .imageUrl(variant.getImageUrl())
+                .imageUrl(variant.getPrimaryImageUrl())
                 .quantity(orderItem.getQuantity())
                 .price(orderItem.getPrice())
                 .build();

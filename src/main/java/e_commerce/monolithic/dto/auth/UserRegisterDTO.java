@@ -1,5 +1,6 @@
 package e_commerce.monolithic.dto.auth;
 
+import java.time.LocalDate;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -20,10 +21,7 @@ public class UserRegisterDTO {
     private String username;
     @NotBlank(message = "Password không được để trống")
     @Size(min = 6, message = "Password phải trên 5 ký tự")
-    @Pattern(
-            regexp = "^[A-Z][^\\s]*[!@#$%^&*(),.?\":{}|<>]+[^\\s]*$",
-            message = "Password phải bắt đầu bằng chữ hoa, có ít nhất 1 ký tự đặc biệt và không chứa khoảng trắng"
-    )
+    @Pattern(regexp = "^[A-Z][^\\s]*[!@#$%^&*(),.?\":{}|<>]+[^\\s]*$", message = "Password phải bắt đầu bằng chữ hoa, có ít nhất 1 ký tự đặc biệt và không chứa khoảng trắng")
     private String password;
     @NotBlank(message = "email không được để trống")
     @Email(message = "Email không hợp lệ")
@@ -35,4 +33,24 @@ public class UserRegisterDTO {
     @NotBlank(message = "phone không được để trống")
     @Pattern(regexp = "^0\\d{9}$", message = "Số điện thoại phải đúng định dạng 0xxxxxxxxx")
     private String phone;
+
+    private String gender;
+
+    private LocalDate birthDate;
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public LocalDate getBirthDate() {
+        return birthDate;
+    }
+
+    public void setBirthDate(LocalDate birthDate) {
+        this.birthDate = birthDate;
+    }
 }

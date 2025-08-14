@@ -14,11 +14,20 @@ import e_commerce.monolithic.entity.Order;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
-        // Lấy danh sách đơn hàng của user, sắp xếp theo ngày tạo mới nhất
-        // Sử dụng LEFT JOIN FETCH để tải `orderItems` cùng lúc, tránh N+1 query
-        @Query(value = "SELECT o FROM Order o LEFT JOIN FETCH o.orderItems WHERE o.user.id = :userId", countQuery = "SELECT COUNT(o) FROM Order o WHERE o.user.id = :userId")
+        /**
+         * Lấy danh sách đơn hàng của user, sắp xếp theo ngày tạo mới nhất.
+         * Sử dụng LEFT JOIN FETCH để tải tất cả các thông tin liên quan (items, variants, products,...)
+         * cùng lúc, tránh N+1 query.
+         */
+        @Query(value = "SELECT o FROM Order o " +
+                        "LEFT JOIN FETCH o.orderItems oi " +
+                        "LEFT JOIN FETCH oi.productVariant pv " +
+                        "LEFT JOIN FETCH pv.product p " +
+                        "LEFT JOIN FETCH pv.color c " +
+                        "LEFT JOIN FETCH oi.size s " +
+                        "WHERE o.user.id = :userId",
+               countQuery = "SELECT COUNT(o) FROM Order o WHERE o.user.id = :userId")
         Page<Order> findByUserId(@Param("userId") Long userId, Pageable pageable);
-
         // Lấy chi tiết một đơn hàng, đảm bảo nó thuộc về đúng user
         // JOIN FETCH tất cả các thông tin cần thiết để hiển thị chi tiết
         @Query("SELECT o FROM Order o " +

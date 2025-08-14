@@ -100,6 +100,32 @@ public class CartServiceImp implements CartService {
         }
     }
 
+    /**
+     * Kiểm tra giới hạn mua hàng cho một sản phẩm (tối đa 10 sản phẩm mỗi loại).
+     * 
+     * @param userId            ID của người dùng.
+     * @param variantId         ID của biến thể sản phẩm.
+     * @param sizeId            ID của size.
+     * @param requestedQuantity Số lượng yêu cầu thêm vào giỏ hàng.
+     */
+    private void checkPurchaseLimit(Long userId, Long variantId, Long sizeId, int requestedQuantity) {
+        final int PURCHASE_LIMIT = 10;
+
+        // Lấy số lượng hiện tại trong giỏ hàng
+        Optional<CartItem> existingCartItem = cartItemRepository
+                .findByUserIdAndProductVariantIdAndSizeId(userId, variantId, sizeId);
+
+        int currentQuantity = existingCartItem.map(CartItem::getQuantity).orElse(0);
+        int totalQuantity = currentQuantity + requestedQuantity;
+
+        if (totalQuantity > PURCHASE_LIMIT) {
+            throw new IllegalArgumentException(
+                    String.format("Bạn chỉ có thể mua tối đa %d sản phẩm cho mỗi loại. " +
+                            "Hiện tại trong giỏ hàng đã có %d sản phẩm, bạn chỉ có thể thêm tối đa %d sản phẩm nữa.",
+                            PURCHASE_LIMIT, currentQuantity, PURCHASE_LIMIT - currentQuantity));
+        }
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<CartItemResponseDTO> getCartItems(String username) {
@@ -130,20 +156,23 @@ public class CartServiceImp implements CartService {
         ProductVariant variant = getProductVariantById(createDTO.getProductVariantId());
         Size size = getSizeById(createDTO.getSizeId());
 
-        // 2. Kiểm tra xem sản phẩm với size cụ thể đã có trong giỏ hàng chưa
+        // 2. Kiểm tra giới hạn mua hàng trước
+        checkPurchaseLimit(user.getId(), variant.getId(), size.getId(), createDTO.getQuantity());
+
+        // 3. Kiểm tra xem sản phẩm với size cụ thể đã có trong giỏ hàng chưa
         Optional<CartItem> existingCartItemOpt = cartItemRepository
                 .findByUserIdAndProductVariantIdAndSizeId(user.getId(), variant.getId(), size.getId());
 
         CartItem cartItemToSave;
         if (existingCartItemOpt.isPresent()) {
-            // 3a. Nếu đã có, cập nhật số lượng
+            // 4a. Nếu đã có, cập nhật số lượng
             cartItemToSave = existingCartItemOpt.get();
             int newQuantity = cartItemToSave.getQuantity() + createDTO.getQuantity();
 
             checkStockAvailability(variant, size.getId(), newQuantity); // Kiểm tra tồn kho
             cartItemToSave.setQuantity(newQuantity);
         } else {
-            // 3b. Nếu chưa có, tạo mới
+            // 4b. Nếu chưa có, tạo mới
             checkStockAvailability(variant, size.getId(), createDTO.getQuantity()); // Kiểm tra tồn kho
             cartItemToSave = CartItem.builder()
                     .user(user)
@@ -153,7 +182,7 @@ public class CartServiceImp implements CartService {
                     .build();
         }
 
-        // 4. Lưu và trả về kết quả
+        // 5. Lưu và trả về kết quả
         CartItem savedCartItem = cartItemRepository.save(cartItemToSave);
         return cartItemMapper.convertToDTO(savedCartItem);
     }
@@ -167,14 +196,17 @@ public class CartServiceImp implements CartService {
         ProductVariant variant = cartItem.getProductVariant();
         Size size = cartItem.getSize();
 
-        // 2. Kiểm tra tồn kho trước khi tăng
+        // 2. Kiểm tra giới hạn mua hàng trước khi tăng
+        checkPurchaseLimit(user.getId(), variant.getId(), size.getId(), 1);
+
+        // 3. Kiểm tra tồn kho trước khi tăng
         checkStockAvailability(variant, size.getId(), cartItem.getQuantity() + 1);
 
-        // 3. Tăng số lượng và lưu
+        // 4. Tăng số lượng và lưu
         cartItem.setQuantity(cartItem.getQuantity() + 1);
         CartItem updatedItem = cartItemRepository.save(cartItem);
 
-        // 4. Trả về DTO (đã sửa kiểu trả về)
+        // 5. Trả về DTO (đã sửa kiểu trả về)
         return cartItemMapper.convertToDTO(updatedItem);
     }
 
@@ -220,7 +252,7 @@ public class CartServiceImp implements CartService {
         return new ResponseMessageDTO(HttpStatus.OK, "Đã xóa tất cả sản phẩm khỏi giỏ hàng thành công");
     }
 
-     @Override
+    @Override
     @Transactional // Đảm bảo tất cả các hoạt động được thực hiện trong một giao dịch duy nhất
     public ResponseMessageDTO syncCart(String username, List<CartItemCreateDTO> itemsToSync) {
         if (itemsToSync == null || itemsToSync.isEmpty()) {

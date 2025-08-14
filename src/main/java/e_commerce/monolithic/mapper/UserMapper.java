@@ -1,7 +1,14 @@
 package e_commerce.monolithic.mapper;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Component;
+
 import e_commerce.monolithic.dto.admin.AccountAdminDTO;
-import e_commerce.monolithic.dto.admin.AccountCreateAdminDTO;
 import e_commerce.monolithic.dto.admin.AccountUpdateAdminDTO;
 import e_commerce.monolithic.dto.admin.authorities.AuthorityDTO;
 import e_commerce.monolithic.dto.auth.UserRegisterDTO;
@@ -10,13 +17,6 @@ import e_commerce.monolithic.dto.user.UserProfileDTO;
 import e_commerce.monolithic.dto.user.UserUpdateProfileDTO;
 import e_commerce.monolithic.entity.Authority;
 import e_commerce.monolithic.entity.User;
-import org.springframework.stereotype.Component;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Component
 public class UserMapper {
@@ -45,11 +45,17 @@ public class UserMapper {
         user.setEmail(dto.getEmail());
         user.setFullname(dto.getFullname());
         user.setPhone(dto.getPhone());
+        // Handle nullable gender and birthDate fields
+        if (dto.getGender() != null) {
+            user.setGender(dto.getGender());
+        }
+        if (dto.getBirthDate() != null) {
+            user.setBirthDate(dto.getBirthDate());
+        }
         user.setEnabled(true);
         user.setCreatedAt(LocalDateTime.now());
         user.setAuthorities(new ArrayList<>(authorities));
         return user;
-
     }
 
     public UserProfileDTO convertToUserProfileDTO(User user) {

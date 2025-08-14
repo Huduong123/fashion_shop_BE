@@ -10,6 +10,7 @@ public class MonolithicApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(MonolithicApplication.class, args);
+		
 	}
 
 }

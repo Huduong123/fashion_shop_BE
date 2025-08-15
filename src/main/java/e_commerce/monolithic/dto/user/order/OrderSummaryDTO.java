@@ -1,6 +1,7 @@
 package e_commerce.monolithic.dto.user.order;
 
 import e_commerce.monolithic.entity.enums.OrderStatus;
+import e_commerce.monolithic.entity.enums.PaymentStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,5 +21,8 @@ public class OrderSummaryDTO {
     private OrderStatus status;
     private LocalDateTime createdAt;
     private int totalItems;
+
+    private PaymentMethodDTO paymentMethod;
+    private PaymentStatus paymentStatus;
 
 }

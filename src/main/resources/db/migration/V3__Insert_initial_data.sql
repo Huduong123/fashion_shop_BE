@@ -1,4 +1,4 @@
--- V3__Insert_initial_data.sql (MySQL) - PHIÊN BẢN ĐÃ GỘP V4 & V5 VÀ XÓA DỮ LIỆU SẢN PHẨM
+-- V3__Insert_initial_data.sql (MySQL) - ĐÃ SỬA LỖI
 
 -- 1. Chèn dữ liệu người dùng và quyền hạn
 INSERT INTO users (id, username, password, email, full_name, phone, gender, birth_date) VALUES
@@ -11,20 +11,19 @@ INSERT INTO authorities (user_id, authority) VALUES
 (2, 'ROLE_USER'),
 (3, 'ROLE_SYSTEM');
 
--- 2. Chèn dữ liệu cho Categories (bao gồm cả dữ liệu từ V4 và slug từ V5)
+-- 2. Chèn dữ liệu cho Categories
 -- 2.1. Chèn các category gốc
 INSERT INTO categories (id, name, description, slug) VALUES
 (1, 'Áo', 'Tất cả các loại áo thời trang', 'ao'),
 (2, 'Quần', 'Quần jeans, quần short, quần dài...', 'quan'),
 (3, 'Phụ kiện', 'Nón, dây nịt, túi xách...', 'phu-kien');
 
--- 2.2. Bổ sung category cha còn thiếu để làm cơ sở cho dữ liệu V4
+-- 2.2. Bổ sung category cha
 INSERT INTO categories (id, name, description, parent_id, slug) VALUES
 (4, 'Áo Nam', 'Các loại áo dành cho nam giới', 1, 'ao-nam'),
 (5, 'Quần Nam', 'Các loại quần dành cho nam giới', 2, 'quan-nam');
 
--- 2.3. Chèn các category con từ V4 (đã sửa parent_id và thêm slug)
--- Lưu ý: ID được chèn tự động, bắt đầu từ 6
+-- 2.3. Chèn các category con
 INSERT INTO categories (name, description, parent_id, type, status, slug) VALUES
 ('Áo polo nam', 'Áo polo dành cho nam giới', 4, 'LINK', 'ACTIVE', 'ao-polo-nam'),
 ('Áo thun nam', 'Áo thun tay ngắn, tay dài dành cho nam', 4, 'LINK', 'ACTIVE', 'ao-thun-nam'),
@@ -37,3 +36,9 @@ INSERT INTO categories (name, description, parent_id, type, status, slug) VALUES
 -- 3. Chèn dữ liệu Colors và Sizes
 INSERT INTO colors (id, name) VALUES (1, 'Đen'), (2, 'Trắng'), (3, 'Xanh Navy');
 INSERT INTO sizes (id, name) VALUES (1, 'S'), (2, 'M'), (3, 'L');
+
+-- 4. Thêm dữ liệu cho payment_methods
+INSERT INTO payment_methods(code, name, is_enabled) VALUES
+('COD', 'Thanh toán khi nhận hàng', 1),
+('VNPAY', 'Thanh toán qua VNPAY', 1),
+('MOMO', 'Thanh toán qua Ví MoMo', 1);

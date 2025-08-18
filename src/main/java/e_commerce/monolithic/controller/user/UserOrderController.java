@@ -18,49 +18,60 @@ import e_commerce.monolithic.dto.common.ResponseMessageDTO;
 import e_commerce.monolithic.dto.user.order.OrderResponseDTO;
 import e_commerce.monolithic.dto.user.order.OrderSummaryDTO;
 import e_commerce.monolithic.service.user.UserOrderService;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/users/orders")
+@RequiredArgsConstructor
 public class UserOrderController {
 
     private final UserOrderService userOrderService;
 
-    public UserOrderController(UserOrderService userOrderService) {
-        this.userOrderService = userOrderService;
-    }
-
     /**
-     * API 1: Lấy danh sách đơn hàng của người dùng (phân trang).
-     * GET /api/users/orders?page=0&size=10&sort=createdAt,desc
+     * API 1 (KHUYÊN DÙNG): Lấy danh sách đơn hàng TÓM TẮT.
+     * Tối ưu cho trang "Lịch sử mua hàng".
+     * GET /api/users/orders/summaries?page=0&size=10&sortBy=createdAt&sortDir=desc
      */
-    @GetMapping
-    public ResponseEntity<Page<OrderResponseDTO>> getUserOrders(
+    @GetMapping("/summaries")
+    public ResponseEntity<Page<OrderSummaryDTO>> getUserOrderSummaries(
             Authentication authentication,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "createdAt,desc") String[] sort) {
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
 
         String username = authentication.getName();
-        Sort.Direction direction = sort[1].equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sort[0]));
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-        Page<OrderResponseDTO> orders = userOrderService.getOrdersForUser(username, pageable);
+        Page<OrderSummaryDTO> orders = userOrderService.getOrderSummariesForUser(username, pageable);
         return ResponseEntity.ok(orders);
     }
 
     /**
-     * API 2: Tạo một đơn hàng mới từ giỏ hàng.
-     * POST /api/users/orders
+     * API 2 (GIỮ LẠI): Lấy danh sách đơn hàng CHI TIẾT.
+     * Chỉ sử dụng khi có nhu cầu đặc biệt cần tải nhiều chi tiết cùng lúc.
+     * GET /api/users/orders?page=0&size=10&sortBy=createdAt&sortDir=desc
      */
-    @PostMapping
-    public ResponseEntity<OrderResponseDTO> createOrder(Authentication authentication) {
+    @GetMapping
+    public ResponseEntity<Page<OrderResponseDTO>> getUserOrderDetailsPage(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+
         String username = authentication.getName();
-        OrderResponseDTO createdOrder = userOrderService.createOrderFromCart(username);
-        return new ResponseEntity<>(createdOrder, HttpStatus.CREATED);
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        
+        // Gọi đến phương thức service tương ứng trả về chi tiết
+        Page<OrderResponseDTO> orders = userOrderService.getOrderDetailsPageForUser(username, pageable);
+        return ResponseEntity.ok(orders);
     }
 
     /**
-     * API 3: Lấy chi tiết một đơn hàng cụ thể.
+     * API 3: Lấy chi tiết MỘT đơn hàng cụ thể.
      * GET /api/users/orders/{id}
      */
     @GetMapping("/{id}")
@@ -73,7 +84,18 @@ public class UserOrderController {
     }
 
     /**
-     * API 4: Người dùng tự hủy đơn hàng.
+     * API 4: Tạo một đơn hàng mới từ giỏ hàng.
+     * POST /api/users/orders
+     */
+    @PostMapping
+    public ResponseEntity<OrderResponseDTO> createOrder(Authentication authentication) {
+        String username = authentication.getName();
+        OrderResponseDTO createdOrder = userOrderService.createOrderFromCart(username);
+        return new ResponseEntity<>(createdOrder, HttpStatus.CREATED);
+    }
+
+    /**
+     * API 5: Người dùng tự hủy đơn hàng.
      * POST /api/users/orders/{id}/cancel
      */
     @PostMapping("/{id}/cancel")

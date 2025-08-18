@@ -112,7 +112,27 @@ public class UserOrderServiceImp implements UserOrderService {
 
         return new ResponseMessageDTO(HttpStatus.OK, "Đã hủy đơn hàng thành công");
     }
+    @Override
+    @Transactional
+    public ResponseMessageDTO compleOrderForUser(String username, Long userId) {
+      User user = findUserByUsername(username);
+      Order order = findOrderById(userId);
 
+      // kiểm tra quyền sở hữu
+      checkOwnerShip(order, user);
+
+      // 3. kiểm tra trạng thái hợp lệ(chỉ hoàn thành khi đã giao)
+      if (order.getStatus() != OrderStatus.DELIVERED) {
+        throw new IllegalArgumentException("Chỉ có thể hoàn thành đơn hàng  đơn hàng đã giao thành công");
+      }
+      //4 . cập nhật trạng thái
+      order.setStatus(OrderStatus.COMPLETED);
+
+      // 5. lưu thay đổi
+      orderRepository.save(order);
+
+      return new ResponseMessageDTO(HttpStatus.OK, "Đã hoàn thành đơn hàng thành công. Cảm ơn bạn đã mua sắm");
+    }
     // hàm check
     private User findUserByUsername(String username) {
         return userRepository.findByUsername(username)
@@ -244,4 +264,6 @@ public class UserOrderServiceImp implements UserOrderService {
             productVariantSize.setQuantity(productVariantSize.getQuantity() + item.getQuantity());
         }
     }
+
+
 }

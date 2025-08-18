@@ -38,6 +38,7 @@ public class SecurityConfig {
             "/api/users/categories/**", // Public endpoints cho user xem categories
             "/api/users/colors/**", // Public endpoints cho user xem colors
             "/api/users/sizes/**", // Public endpoints cho user xem sizes
+            "/api/users/payment-methods/**",
             "/uploads/**",
 
     };

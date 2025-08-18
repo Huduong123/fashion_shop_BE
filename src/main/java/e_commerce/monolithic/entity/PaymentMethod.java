@@ -1,7 +1,10 @@
 package e_commerce.monolithic.entity;
 
+import e_commerce.monolithic.entity.enums.PaymentMethodType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -30,4 +33,8 @@ public class PaymentMethod extends BaseEntity{
 
     @Column(name = "is_enabled", nullable = false)
     private boolean enabled = true;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false, columnDefinition = "ENUM('OFFLINE', 'ONLINE_REDIRECT')")
+    private PaymentMethodType type;
 }

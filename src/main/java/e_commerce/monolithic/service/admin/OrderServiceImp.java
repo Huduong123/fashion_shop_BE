@@ -10,6 +10,8 @@ import e_commerce.monolithic.exeption.NotFoundException;
 import e_commerce.monolithic.repository.OrderRepository;
 import e_commerce.monolithic.specification.OrderSpecification;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -53,9 +55,7 @@ public class OrderServiceImp implements OrderService {
                 order.setStatus(status);
                 orderRepository.save(order);
 
-                return ResponseMessageDTO.builder()
-                                .message("Order status updated successfully")
-                                .build();
+                return new ResponseMessageDTO(HttpStatus.OK, "Order status updated successfully");
         }
 
         @Override
@@ -66,9 +66,7 @@ public class OrderServiceImp implements OrderService {
 
                 orderRepository.delete(order);
 
-                return ResponseMessageDTO.builder()
-                                .message("Order deleted successfully")
-                                .build();
+                return new ResponseMessageDTO(HttpStatus.OK, "Order deleted successfully");
         }
 
         private OrderAdminResponseDTO convertToOrderAdminResponseDTO(Order order) {

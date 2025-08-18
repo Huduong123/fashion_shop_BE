@@ -106,4 +106,12 @@ public class UserOrderController {
         ResponseMessageDTO response = userOrderService.cancelOrder(username, id);
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/{id}/complete")
+    public ResponseEntity<ResponseMessageDTO> completeOrder(Authentication authentication, 
+                                            @PathVariable Long id) {
+            String username = authentication.getName();
+            ResponseMessageDTO response = userOrderService.compleOrderForUser(username, id);
+            return ResponseEntity.ok(response);
+        }   
 }

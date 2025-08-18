@@ -24,4 +24,6 @@ public interface UserOrderService {
     // hủy đơn hàng
     ResponseMessageDTO cancelOrder(String username, Long orderid);
 
+    //xác nhận đã nhận hàng
+    ResponseMessageDTO compleOrderForUser(String username, Long userId);
 }

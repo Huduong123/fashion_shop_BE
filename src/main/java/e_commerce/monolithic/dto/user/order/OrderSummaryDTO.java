@@ -1,5 +1,6 @@
 package e_commerce.monolithic.dto.user.order;
 
+import e_commerce.monolithic.dto.user.payment_method.PaymentMethodDTO;
 import e_commerce.monolithic.entity.enums.OrderStatus;
 import e_commerce.monolithic.entity.enums.PaymentStatus;
 import lombok.AllArgsConstructor;

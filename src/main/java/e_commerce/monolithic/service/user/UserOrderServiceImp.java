@@ -1,6 +1,7 @@
 package e_commerce.monolithic.service.user;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,15 +18,18 @@ import e_commerce.monolithic.dto.user.order.OrderSummaryDTO;
 import e_commerce.monolithic.entity.CartItem;
 import e_commerce.monolithic.entity.Order;
 import e_commerce.monolithic.entity.OrderItem;
+import e_commerce.monolithic.entity.PaymentMethod;
 import e_commerce.monolithic.entity.ProductVariant;
 import e_commerce.monolithic.entity.ProductVariantSize;
 import e_commerce.monolithic.entity.Size;
 import e_commerce.monolithic.entity.User;
 import e_commerce.monolithic.entity.enums.OrderStatus;
+import e_commerce.monolithic.entity.enums.PaymentStatus;
 import e_commerce.monolithic.exeption.NotFoundException;
 import e_commerce.monolithic.mapper.OrderMapper;
 import e_commerce.monolithic.repository.CartItemRepository;
 import e_commerce.monolithic.repository.OrderRepository;
+import e_commerce.monolithic.repository.PaymentMethodRepository;
 import e_commerce.monolithic.repository.UserRepository;
 
 @Service
@@ -35,18 +39,32 @@ public class UserOrderServiceImp implements UserOrderService {
     private final UserRepository userRepository;
     private final CartItemRepository cartItemRepository;
     private final OrderMapper orderMapper;
-
+    private final PaymentMethodRepository paymentMethodRepository;
     public UserOrderServiceImp(OrderRepository orderRepository, UserRepository userRepository,
-            CartItemRepository cartItemRepository, OrderMapper orderMapper) {
+            CartItemRepository cartItemRepository, OrderMapper orderMapper, PaymentMethodRepository paymentMethodRepository) {
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
         this.cartItemRepository = cartItemRepository;
         this.orderMapper = orderMapper;
+        this.paymentMethodRepository = paymentMethodRepository;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<OrderResponseDTO> getOrdersForUser(String username, Pageable pageable) {
+    public Page<OrderSummaryDTO> getOrderSummariesForUser(String username, Pageable pageable) {
+        User user = findUserByUsername(username);
+        Page<Order> ordersPage = orderRepository.findByUserId(user.getId(), pageable);
+        return ordersPage.map(order -> {
+            int totalItems = order.getOrderItems().stream()
+                                    .mapToInt(OrderItem::getQuantity)
+                                    .sum();
+            return orderMapper.convertToOrderSummaryDTO(order, totalItems);
+        });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<OrderResponseDTO> getOrderDetailsPageForUser(String username, Pageable pageable) {
         User user = findUserByUsername(username);
         Page<Order> ordersPage = orderRepository.findByUserId(user.getId(), pageable);
 
@@ -126,32 +144,43 @@ public class UserOrderServiceImp implements UserOrderService {
      * Xây dựng đối tượng Order từ giỏ hàng , bao gồm việc kiểm tra và trừ tồn kho
      */
     private Order buildOrderFromCart(User user, List<CartItem> cartItems) {
-        Order newOrder = new Order();
-        newOrder.setUser(user);
-        newOrder.setStatus(OrderStatus.PENDING);
-
+        // 1. TÌM PHƯƠNG THỨC THANH TOÁN MẶC ĐỊNH (ví dụ COD có ID là 1)
+        PaymentMethod defaultPaymentMethod = paymentMethodRepository.findById(1L)
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy phương thức thanh toán mặc định với ID 1."));
+    
+        // 2. TẠO ĐƠN HÀNG VÀ GÁN CÁC GIÁ TRỊ CẦN THIẾT
+        Order newOrder = Order.builder()
+                            .user(user)
+                            .status(OrderStatus.PENDING)
+                            .paymentStatus(PaymentStatus.UNPAID) // Cũng nên gán trạng thái thanh toán mặc định
+                            .paymentMethod(defaultPaymentMethod) // <-- ĐÂY LÀ DÒNG SỬA LỖI QUAN TRỌNG NHẤT
+                            .orderItems(new ArrayList<>())
+                            .build();
+    
         BigDecimal totalPrice = BigDecimal.ZERO;
-
+    
+        // Vòng lặp for của bạn giữ nguyên không thay đổi
         for (CartItem cartItem : cartItems) {
             ProductVariant productVariant = cartItem.getProductVariant();
             Size size = cartItem.getSize();
             int requestedQuantity = cartItem.getQuantity();
-
-            // Tìm ProductVariantSize tương ứng
+    
             ProductVariantSize productVariantSize = findProductVariantSize(productVariant, size);
-
+    
             checkAndReduceStock(productVariantSize, requestedQuantity);
-
+    
             OrderItem orderItem = createOrderItem(newOrder, productVariant, size, requestedQuantity,
                     productVariantSize.getPrice());
-
+    
             newOrder.getOrderItems().add(orderItem);
-
+    
             totalPrice = totalPrice.add(productVariantSize.getPrice().multiply(BigDecimal.valueOf(requestedQuantity)));
         }
+        
         newOrder.setTotalPrice(totalPrice);
         return newOrder;
     }
+    
 
     /**
      * Tìm ProductVariantSize tương ứng với ProductVariant và Size

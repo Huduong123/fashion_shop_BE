@@ -13,6 +13,12 @@ import e_commerce.monolithic.entity.OrderItem;
 @Component
 public class OrderMapper {
 
+    private final PaymentMethodMapper paymentMethodMapper;
+
+    public OrderMapper(PaymentMethodMapper paymentMethodMapper) {
+        this.paymentMethodMapper = paymentMethodMapper;
+    }
+
     public OrderItemResponseDTO convertToOrderItemDTO(OrderItem orderItem) {
 
         var variant = orderItem.getProductVariant();
@@ -35,6 +41,8 @@ public class OrderMapper {
                 .id(order.getId())
                 .totalPrice(order.getTotalPrice())
                 .status(order.getStatus())
+                .paymentMethod(paymentMethodMapper.convertToPaymentMethodDTO(order.getPaymentMethod()))
+                .paymentStatus(order.getPaymentStatus())
                 .createdAt(order.getCreatedAt())
                 .orderItems(order.getOrderItems().stream()
                         .map(this::convertToOrderItemDTO)
@@ -42,13 +50,15 @@ public class OrderMapper {
                 .build();
     }
 
-    public OrderSummaryDTO convertToOrderSummaryDTO(Order order) {
+    public OrderSummaryDTO convertToOrderSummaryDTO(Order order, int totalItems) {
         return OrderSummaryDTO.builder()
                 .id(order.getId())
                 .totalPrice(order.getTotalPrice())
                 .status(order.getStatus())
+                .paymentMethod(paymentMethodMapper.convertToPaymentMethodDTO(order.getPaymentMethod()))
+                .paymentStatus(order.getPaymentStatus())
                 .createdAt(order.getCreatedAt())
-                .totalItems(order.getOrderItems().size())
+                .totalItems(totalItems)
                 .build();
     }
 }

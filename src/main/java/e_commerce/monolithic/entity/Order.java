@@ -45,7 +45,7 @@ public class Order extends BaseEntity{
     private OrderStatus status;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @Column(name = "payment_method_id", nullable = false)
+    @JoinColumn(name = "payment_method_id", nullable = false)
     private PaymentMethod paymentMethod;
 
     @Enumerated(EnumType.STRING)

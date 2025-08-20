@@ -36,7 +36,7 @@ CREATE TABLE authorities (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Table: categories (with hierarchy support and slug from V5)
+-- Table: categories
 CREATE TABLE categories (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL UNIQUE,
@@ -44,12 +44,12 @@ CREATE TABLE categories (
     parent_id BIGINT,
     type VARCHAR(20) NOT NULL DEFAULT 'DROPDOWN',
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
-    slug VARCHAR(120) UNIQUE, -- Thêm cột slug từ V5
+    slug VARCHAR(120) UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Bảng colors và sizes
+-- Table: colors and sizes
 CREATE TABLE colors (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(50) NOT NULL UNIQUE,
@@ -64,7 +64,7 @@ CREATE TABLE sizes (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Bảng products chỉ chứa thông tin chung
+-- Table: products
 CREATE TABLE products (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
@@ -75,7 +75,7 @@ CREATE TABLE products (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Bảng product_variants
+-- Table: product_variants
 CREATE TABLE product_variants (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     product_id BIGINT NOT NULL,
@@ -87,7 +87,7 @@ CREATE TABLE product_variants (
     CONSTRAINT uq_product_variant UNIQUE (product_id, color_id)
 );
 
--- Bảng product_variant_sizes
+-- Table: product_variant_sizes
 CREATE TABLE product_variant_sizes (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     product_variant_id BIGINT NOT NULL,
@@ -99,7 +99,7 @@ CREATE TABLE product_variant_sizes (
     CONSTRAINT uq_product_variant_size UNIQUE (product_variant_id, size_id)
 );
 
--- Bảng product_variant_images
+-- Table: product_variant_images
 CREATE TABLE product_variant_images (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     product_variant_id BIGINT NOT NULL,
@@ -111,7 +111,7 @@ CREATE TABLE product_variant_images (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Bảng cart_items
+-- Table: cart_items
 CREATE TABLE cart_items (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     user_id BIGINT NOT NULL,
@@ -134,7 +134,7 @@ CREATE TABLE orders (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Bảng order_items
+-- Table: order_items
 CREATE TABLE order_items (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     order_id BIGINT NOT NULL,
@@ -146,14 +146,32 @@ CREATE TABLE order_items (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- Table: payment_methods (ĐÃ CẬP NHẬT GỘP TỪ V4 & V5)
 CREATE TABLE payment_methods(
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    code VARCHAR(50) NOT NULL UNIQUE,
-    name VARCHAR(100) NOT NULL,
+    code VARCHAR(50) NOT NULL UNIQUE COMMENT 'Mã định danh duy nhất, dạng slug, dùng trong code',
+    name VARCHAR(100) NOT NULL COMMENT 'Tên hiển thị ngắn gọn cho người dùng',
+    description VARCHAR(255) NOT NULL COMMENT 'Mô tả chi tiết về phương thức thanh toán',
     is_enabled TINYINT(1) NOT NULL DEFAULT 1,
+    type ENUM('OFFLINE', 'ONLINE_REDIRECT') NOT NULL COMMENT 'Loại phương thức thanh toán',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
+-- Table: payment_transactions (MỚI - GỘP TỪ V4)
+CREATE TABLE payment_transactions (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    order_id BIGINT NOT NULL COMMENT 'Liên kết tới đơn hàng',
+    transaction_code VARCHAR(50) NOT NULL UNIQUE COMMENT 'Mã giao dịch duy nhất do hệ thống của mình tạo ra',
+    gateway_transaction_id VARCHAR(100) COMMENT 'Mã giao dịch từ cổng thanh toán (MoMo, VNPay,...)',
+    amount DECIMAL(10,2) NOT NULL COMMENT 'Số tiền của giao dịch',
+    status ENUM('PENDING', 'SUCCESS', 'FAILED', 'CANCELLED') NOT NULL DEFAULT 'PENDING' COMMENT 'Trạng thái giao dịch',
+    payment_method_code VARCHAR(50) NOT NULL COMMENT 'Mã của phương thức thanh toán được sử dụng (Vd: momo)',
+    note TEXT COMMENT 'Ghi chú thêm hoặc thông báo lỗi từ cổng thanh toán',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 -- Table: reviews
 CREATE TABLE reviews (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -169,28 +187,17 @@ CREATE TABLE reviews (
 -- Add Auxiliary Indexes
 CREATE INDEX idx_authorities_user_id ON authorities (user_id);
 CREATE INDEX idx_cart_items_user_id ON cart_items (user_id);
-CREATE INDEX idx_cart_items_variant_id ON cart_items (product_variant_id);
-CREATE INDEX idx_cart_items_size_id ON cart_items (size_id);
 CREATE INDEX idx_orders_user_id ON orders (user_id);
 CREATE INDEX idx_order_items_order_id ON order_items (order_id);
-CREATE INDEX idx_order_items_variant_id ON order_items (product_variant_id);
-CREATE INDEX idx_order_items_size_id ON order_items (size_id);
 CREATE INDEX idx_products_category_id ON products (category_id);
 CREATE INDEX idx_reviews_user_id ON reviews (user_id);
 CREATE INDEX idx_reviews_product_id ON reviews (product_id);
 CREATE INDEX idx_user_addresses_user_id ON user_addresses (user_id);
-CREATE INDEX idx_variant_product_id ON product_variants (product_id);
-CREATE INDEX idx_variant_color_id ON product_variants (color_id);
-CREATE INDEX idx_categories_parent_id ON categories(parent_id);
-CREATE INDEX idx_categories_type ON categories(type);
-CREATE INDEX idx_categories_status ON categories(status);
-CREATE INDEX idx_categories_slug ON categories(slug); -- Thêm index cho slug từ V5
-CREATE INDEX idx_product_variants_status ON product_variants(status);
-CREATE INDEX idx_product_variant_images_variant_id ON product_variant_images(product_variant_id);
-CREATE INDEX idx_product_variant_images_primary ON product_variant_images(product_variant_id, is_primary);
-CREATE INDEX idx_product_variant_images_order ON product_variant_images(product_variant_id, display_order);
+CREATE INDEX idx_categories_slug ON categories(slug);
+-- Indexes for new table payment_transactions (GỘP TỪ V4)
+CREATE INDEX idx_transactions_order_id ON payment_transactions(order_id);
+CREATE INDEX idx_transactions_status ON payment_transactions(status);
+CREATE INDEX idx_transactions_gateway_id ON payment_transactions(gateway_transaction_id);
 
 -- Add Check Constraints
-ALTER TABLE product_variants
-ADD CONSTRAINT chk_product_variant_status
-CHECK (status IN ('ACTIVE', 'INACTIVE', 'DISCONTINUED', 'OUT_OF_STOCK'));
+ALTER TABLE product_variants ADD CONSTRAINT chk_product_variant_status CHECK (status IN ('ACTIVE', 'INACTIVE', 'DISCONTINUED', 'OUT_OF_STOCK'));

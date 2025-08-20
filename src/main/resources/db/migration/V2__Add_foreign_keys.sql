@@ -3,7 +3,7 @@
 -- Foreign key for authorities
 ALTER TABLE authorities ADD CONSTRAINT fk_authorities_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
 
--- Foreign key for categories (self-referencing for hierarchy)
+-- Foreign key for categories
 ALTER TABLE categories ADD CONSTRAINT fk_categories_parent_id FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL;
 
 -- Foreign key for products
@@ -27,8 +27,6 @@ ALTER TABLE cart_items ADD CONSTRAINT fk_cart_items_size FOREIGN KEY (size_id) R
 
 -- Foreign key for orders
 ALTER TABLE orders ADD CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users (id);
-
--- Foreign keys for payment_method
 ALTER TABLE orders ADD CONSTRAINT fk_orders_payment_method FOREIGN KEY (payment_method_id) REFERENCES payment_methods(id);
 
 -- Foreign keys for order_items
@@ -42,3 +40,6 @@ ALTER TABLE reviews ADD CONSTRAINT fk_reviews_product FOREIGN KEY (product_id) R
 
 -- Foreign key for user_addresses
 ALTER TABLE user_addresses ADD CONSTRAINT fk_user_addresses_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
+
+-- Foreign key for payment_transactions 
+ALTER TABLE payment_transactions ADD CONSTRAINT fk_transactions_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE;

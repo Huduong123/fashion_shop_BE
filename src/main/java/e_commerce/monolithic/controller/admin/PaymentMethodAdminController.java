@@ -3,6 +3,7 @@ package e_commerce.monolithic.controller.admin;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import e_commerce.monolithic.dto.admin.payment_method_admin.PaymentMethodAdminDTO;
 import e_commerce.monolithic.dto.admin.payment_method_admin.PaymentMethodCreateAdminDTO;
 import e_commerce.monolithic.dto.admin.payment_method_admin.PaymentMethodUpdateAdminDTO;
+import e_commerce.monolithic.dto.common.ResponseMessageDTO;
 import e_commerce.monolithic.service.admin.PaymentMethodAdminService;
 import jakarta.validation.Valid;
 
@@ -43,5 +45,11 @@ public class PaymentMethodAdminController {
         PaymentMethodAdminDTO updatePaymentMethod = paymentMethodAdminService.updatePaymentMethod(id, updateAdminDTO);
         return ResponseEntity.ok(updatePaymentMethod);
 
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ResponseMessageDTO> deletePaymentMethod(@PathVariable Long id) {
+        ResponseMessageDTO responseMessageDTO = paymentMethodAdminService.deletePaymentMethod(id);
+        return ResponseEntity.ok(responseMessageDTO);
     }
 }

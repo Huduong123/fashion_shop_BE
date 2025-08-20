@@ -3,16 +3,19 @@ package e_commerce.monolithic.service.admin;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import e_commerce.monolithic.dto.admin.payment_method_admin.PaymentMethodAdminDTO;
 import e_commerce.monolithic.dto.admin.payment_method_admin.PaymentMethodCreateAdminDTO;
 import e_commerce.monolithic.dto.admin.payment_method_admin.PaymentMethodUpdateAdminDTO;
+import e_commerce.monolithic.dto.common.ResponseMessageDTO;
 import e_commerce.monolithic.entity.PaymentMethod;
 import e_commerce.monolithic.exeption.DuplicateResourceException;
 import e_commerce.monolithic.exeption.NotFoundException;
 import e_commerce.monolithic.mapper.admin.PaymentMethodAdminMapper;
+import e_commerce.monolithic.repository.OrderRepository;
 import e_commerce.monolithic.repository.PaymentMethodRepository;
 
 @Service
@@ -20,13 +23,16 @@ public class PaymentMethodAdminServiceImp implements PaymentMethodAdminService{
 
     private final PaymentMethodAdminMapper paymentMethodAdminMapper;
     private final PaymentMethodRepository paymentMethodRepository;
+    private final OrderRepository orderRepository;
+
+
 
     public PaymentMethodAdminServiceImp(PaymentMethodAdminMapper paymentMethodAdminMapper,
-            PaymentMethodRepository paymentMethodRepository) {
+            PaymentMethodRepository paymentMethodRepository, OrderRepository orderRepository) {
         this.paymentMethodAdminMapper = paymentMethodAdminMapper;
         this.paymentMethodRepository = paymentMethodRepository;
+        this.orderRepository = orderRepository;
     }
-
     @Override
     public List<PaymentMethodAdminDTO> getAllPaymentMethods() {
         return paymentMethodRepository.findAll()
@@ -88,6 +94,21 @@ public class PaymentMethodAdminServiceImp implements PaymentMethodAdminService{
 
         // BƯỚC 5: Chuyển đổi Entity đã cập nhật thành DTO để trả về cho client.
         return paymentMethodAdminMapper.convertToPaymentMethodAdminDTO(savedPaymentMethod);
+    }
+
+    @Override
+    @Transactional
+    public ResponseMessageDTO deletePaymentMethod(Long id) {
+      if(!paymentMethodRepository.existsById(id)) {
+        throw new NotFoundException("Không tìm thấy phương thức thanh toán với ID: " + id);
+        }
+
+        boolean isUsedInOrders = orderRepository.existsByPaymentMethodId(id);
+        if (isUsedInOrders) {
+            throw new IllegalArgumentException("Không thể xóa phương thức này vì nó đã được sử dụng trong ít nhất 1 đơn hàng");
+        }
+        paymentMethodRepository.deleteById(id);
+        return new ResponseMessageDTO(HttpStatus.OK, "Xóa phương thức thanh toán với ID " + id + " thành công.");
     }
 
     

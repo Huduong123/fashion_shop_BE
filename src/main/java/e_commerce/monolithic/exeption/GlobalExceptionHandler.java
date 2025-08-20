@@ -269,4 +269,21 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 message);
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
+
+     /**
+     * THÊM MỚI: Xử lý ngoại lệ DuplicateResourceException (tự định nghĩa).
+     * Dùng khi cố gắng tạo một tài nguyên đã tồn tại trong hệ thống (ví dụ: trùng code, name, email).
+     * Trả về mã lỗi HTTP 409 (Conflict).
+     *
+     * @param ex DuplicateResourceException xảy ra
+     * @return ResponseEntity chứa ErrorResponse và mã lỗi 409
+     */
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<?> handleDuplicateResource(DuplicateResourceException ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.CONFLICT.value(),
+                HttpStatus.CONFLICT.getReasonPhrase(),
+                ex.getMessage());
+        return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
 }

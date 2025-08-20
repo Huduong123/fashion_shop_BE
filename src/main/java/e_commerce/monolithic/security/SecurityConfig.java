@@ -54,11 +54,9 @@ public class SecurityConfig {
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll() // Cho phép truy cập công khai đến các endpoint
                                                                        // này
 
-                        .requestMatchers("/api/admin/accounts/**").hasRole("SYSTEM") // Chỉ SYSTEM mới truy cập được
-                                                                                     // quản lý account
-                        .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "SYSTEM") // ADMIN và SYSTEM cho các
-                                                                                        // endpoint admin khác
-                        // Ví dụ: Người dùng hoặc admin đều có thể xem/cập nhật profile của họ
+                        .requestMatchers("/api/admin/accounts/**").hasRole("SYSTEM")
+                        .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "SYSTEM")
+                        .requestMatchers("/api/admin/payment-methods/**").hasAnyRole("ADMIN", "SYSTEM")
                         .requestMatchers("/api/user/profile/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/users/cart/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/users/orders/**").hasRole("USER")
@@ -67,17 +65,9 @@ public class SecurityConfig {
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint) // Xử lý các lỗi xác thực (ví dụ: thiếu
                                                                                // token, token không hợp lệ)
-                // .accessDeniedHandler(new CustomAccessDeniedHandler()) // Tùy chọn: Thêm
-                // AccessDeniedHandler để xử lý các lỗi ủy quyền (người dùng xác thực nhưng
-                // không có quyền)
-                )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // Thêm JWT
-                                                                                                       // filter trước
-                                                                                                       // filter mặc
-                                                                                                       // định của
-                                                                                                       // Spring
-                                                                                                       // Security
 
+                )
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // Thêm JWT filter trước filter mặc định của Spring Security
         return http.build();
     }
 

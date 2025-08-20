@@ -15,6 +15,7 @@ public class PaymentMethodMapper {
         return PaymentMethodDTO.builder()
                 .code(paymentMethod.getCode())
                 .name(paymentMethod.getName())
+                .description(paymentMethod.getDescription())
                 .type(paymentMethod.getType())                
                 .build();
     }

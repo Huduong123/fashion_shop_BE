@@ -39,4 +39,18 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
                         "WHERE o.id = :orderId AND o.user.id = :userId")
         Optional<Order> findByIdAndUserIdWithDetails(@Param("orderId") Long orderId,
                         @Param("userId") Long userId);
+
+
+        /**
+         * THÊM MỚI: Kiểm tra xem có bất kỳ đơn hàng nào tồn tại 
+         * đang sử dụng một ID phương thức thanh toán cụ thể hay không.
+         * Đây là cách hiệu quả nhất để kiểm tra sự tồn tại mà không cần tải dữ liệu.
+         * 
+         * @param paymentMethodId ID của phương thức thanh toán cần kiểm tra.
+         * @return true nếu có ít nhất một đơn hàng sử dụng, ngược lại trả về false.
+         */
+        boolean existsByPaymentMethodId(Long paymentMethodId);
+
+
+
 }

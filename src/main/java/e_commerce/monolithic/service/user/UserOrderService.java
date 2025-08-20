@@ -16,7 +16,7 @@ public interface UserOrderService {
     Page<OrderResponseDTO> getOrderDetailsPageForUser(String username, Pageable pageable);
 
     // tạo đơn đơn hàng từ giỏ hàng
-    OrderResponseDTO createOrderFromCart(String username);
+    OrderResponseDTO createOrderFromCart(String username, Long paymentMethodId);
 
     // lấy chi tiết 1 đơn hàng cụ thể.
     OrderResponseDTO getOrderDetails(String username, Long orderId);

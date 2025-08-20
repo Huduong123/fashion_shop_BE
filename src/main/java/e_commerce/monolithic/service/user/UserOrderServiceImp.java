@@ -73,11 +73,15 @@ public class UserOrderServiceImp implements UserOrderService {
 
     @Override
     @Transactional
-    public OrderResponseDTO createOrderFromCart(String username) {
+    public OrderResponseDTO createOrderFromCart(String username, Long paymentMethodId) {
         User user = findUserByUsername(username);
         List<CartItem> cartItems = findAndValidateCartItem(user.getId());
 
-        Order newOrder = buildOrderFromCart(user, cartItems);
+        // Tìm phương thức thanh toán do người dùng chọn
+        PaymentMethod selectedPaymentMethod = paymentMethodRepository.findById(paymentMethodId)
+                .orElseThrow(() -> new NotFoundException("Phương thức thanh toán không hợp lệ."));
+
+        Order newOrder = buildOrderFromCart(user, cartItems, selectedPaymentMethod);
 
         // lưu đơn hàng và xóa ở giỏ hàng
         orderRepository.save(newOrder);
@@ -163,17 +167,14 @@ public class UserOrderServiceImp implements UserOrderService {
     /**
      * Xây dựng đối tượng Order từ giỏ hàng , bao gồm việc kiểm tra và trừ tồn kho
      */
-    private Order buildOrderFromCart(User user, List<CartItem> cartItems) {
-        // 1. TÌM PHƯƠNG THỨC THANH TOÁN MẶC ĐỊNH (ví dụ COD có ID là 1)
-        PaymentMethod defaultPaymentMethod = paymentMethodRepository.findById(1L)
-                .orElseThrow(() -> new IllegalStateException("Không tìm thấy phương thức thanh toán mặc định với ID 1."));
-    
-        // 2. TẠO ĐƠN HÀNG VÀ GÁN CÁC GIÁ TRỊ CẦN THIẾT
+    private Order buildOrderFromCart(User user, List<CartItem> cartItems, PaymentMethod paymentMethod) {
+
+        // TẠO ĐƠN HÀNG VÀ GÁN CÁC GIÁ TRỊ CẦN THIẾT
         Order newOrder = Order.builder()
                             .user(user)
                             .status(OrderStatus.PENDING)
                             .paymentStatus(PaymentStatus.UNPAID) // Cũng nên gán trạng thái thanh toán mặc định
-                            .paymentMethod(defaultPaymentMethod) // <-- ĐÂY LÀ DÒNG SỬA LỖI QUAN TRỌNG NHẤT
+                            .paymentMethod(paymentMethod) 
                             .orderItems(new ArrayList<>())
                             .build();
     

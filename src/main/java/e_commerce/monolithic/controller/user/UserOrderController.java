@@ -10,14 +10,17 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import e_commerce.monolithic.dto.common.ResponseMessageDTO;
+import e_commerce.monolithic.dto.user.order.OrderCreateDTO;
 import e_commerce.monolithic.dto.user.order.OrderResponseDTO;
 import e_commerce.monolithic.dto.user.order.OrderSummaryDTO;
 import e_commerce.monolithic.service.user.UserOrderService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -88,9 +91,10 @@ public class UserOrderController {
      * POST /api/users/orders
      */
     @PostMapping
-    public ResponseEntity<OrderResponseDTO> createOrder(Authentication authentication) {
+    public ResponseEntity<OrderResponseDTO> createOrder(Authentication authentication,
+                                                        @Valid @RequestBody OrderCreateDTO orderCreateDTO) {
         String username = authentication.getName();
-        OrderResponseDTO createdOrder = userOrderService.createOrderFromCart(username);
+        OrderResponseDTO createdOrder = userOrderService.createOrderFromCart(username, orderCreateDTO.getPaymentMethodId());
         return new ResponseEntity<>(createdOrder, HttpStatus.CREATED);
     }
 

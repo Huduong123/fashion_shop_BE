@@ -35,7 +35,7 @@ INSERT INTO colors (id, name) VALUES (1, 'Đen'), (2, 'Trắng'), (3, 'Xanh Navy
 INSERT INTO sizes (id, name) VALUES (1, 'S'), (2, 'M'), (3, 'L');
 
 -- 4. Thêm dữ liệu cho payment_methods 
-INSERT INTO payment_methods(code, name, description, is_enabled, type) VALUES
-('cod', 'Thanh toán khi nhận hàng (COD)', 'Thanh toán trực tiếp cho nhân viên giao hàng khi nhận sản phẩm.', 1, 'OFFLINE'),
-('vnpay', 'VNPAY', 'Thanh toán qua cổng VNPAY (ATM/Visa/Master/JCB/QR Pay).', 1, 'ONLINE_REDIRECT'),
-('momo', 'Ví MoMo', 'Thanh toán an toàn và nhanh chóng qua ví điện tử MoMo.', 1, 'ONLINE_REDIRECT');
+INSERT INTO payment_methods(code, name, description, image_url, is_enabled, type) VALUES
+('cod', 'Thanh toán khi nhận hàng (COD)', 'Thanh toán trực tiếp cho nhân viên giao hàng khi nhận sản phẩm.', '/icons/cod.png', 1, 'OFFLINE'),
+('vnpay', 'VNPAY', 'Thanh toán qua cổng VNPAY (ATM/Visa/Master/JCB/QR Pay).', '/icons/vnpay.png', 1, 'ONLINE_REDIRECT'),
+('momo', 'Ví MoMo', 'Thanh toán an toàn và nhanh chóng qua ví điện tử MoMo.', '/icons/momo.png', 1, 'ONLINE_REDIRECT');

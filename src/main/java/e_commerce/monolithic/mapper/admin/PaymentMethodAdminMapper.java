@@ -15,9 +15,11 @@ public class PaymentMethodAdminMapper {
             return null;
         }
         return PaymentMethodAdminDTO.builder()
+                .id(paymentMethod.getId()) 
                 .code(paymentMethod.getCode())
                 .name(paymentMethod.getName())
                 .description(paymentMethod.getDescription())
+                .imageUrl(paymentMethod.getImageUrl())
                 .type(paymentMethod.getType())
                 .enabled(paymentMethod.isEnabled())
                 .createdAt(paymentMethod.getCreatedAt())
@@ -33,6 +35,7 @@ public class PaymentMethodAdminMapper {
         paymentMethod.setCode(paymentMethodCreateAdminDTO.getCode());
         paymentMethod.setName(paymentMethodCreateAdminDTO.getName());
         paymentMethod.setDescription(paymentMethodCreateAdminDTO.getDescription());
+        paymentMethod.setImageUrl(paymentMethodCreateAdminDTO.getImageUrl());
         paymentMethod.setType(paymentMethodCreateAdminDTO.getType());
         paymentMethod.setEnabled(paymentMethodCreateAdminDTO.isEnabled());
         return paymentMethod;
@@ -45,6 +48,7 @@ public class PaymentMethodAdminMapper {
         }
         paymentMethod.setName(paymentMethodUpdateAdminDTO.getName());
         paymentMethod.setDescription(paymentMethodUpdateAdminDTO.getDescription());
+        paymentMethod.setImageUrl(paymentMethodUpdateAdminDTO.getImageUrl());
         paymentMethod.setType(paymentMethodUpdateAdminDTO.getType());
         paymentMethod.setEnabled(paymentMethodUpdateAdminDTO.getEnabled());
     }

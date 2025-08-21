@@ -34,6 +34,9 @@ public class PaymentMethod extends BaseEntity{
     @Column(nullable = false, length = 255)
     private String description;
 
+    @Column(name = "image_url", length = 255)
+    private String imageUrl;
+
     @Column(name = "is_enabled", nullable = false)
     private boolean enabled = true;
 

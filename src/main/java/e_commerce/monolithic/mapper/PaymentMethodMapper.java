@@ -8,7 +8,7 @@ import e_commerce.monolithic.entity.PaymentMethod;
 @Component
 public class PaymentMethodMapper {
 
-    public PaymentMethodDTO convertToPaymentMethodDTO (PaymentMethod paymentMethod) {
+    public PaymentMethodDTO convertToPaymentMethodDTO(PaymentMethod paymentMethod) {
         if (paymentMethod == null) {
             return null;
         }
@@ -16,7 +16,7 @@ public class PaymentMethodMapper {
                 .code(paymentMethod.getCode())
                 .name(paymentMethod.getName())
                 .description(paymentMethod.getDescription())
-                .type(paymentMethod.getType())                
+                .type(paymentMethod.getType())
                 .build();
     }
 }

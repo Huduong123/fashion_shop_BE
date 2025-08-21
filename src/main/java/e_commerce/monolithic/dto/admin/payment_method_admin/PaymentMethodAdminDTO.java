@@ -13,9 +13,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class PaymentMethodAdminDTO {
+    private Long id;
     private String code;
     private String name;
     private String description;
+    private String imageUrl;
     private PaymentMethodType type;
     private boolean enabled;
     private LocalDateTime createdAt;

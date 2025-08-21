@@ -1,11 +1,13 @@
 package e_commerce.monolithic.service.admin;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import e_commerce.monolithic.dto.admin.payment_method_admin.PaymentMethodAdminDTO;
 import e_commerce.monolithic.dto.admin.payment_method_admin.PaymentMethodCreateAdminDTO;
@@ -19,20 +21,25 @@ import e_commerce.monolithic.repository.OrderRepository;
 import e_commerce.monolithic.repository.PaymentMethodRepository;
 
 @Service
-public class PaymentMethodAdminServiceImp implements PaymentMethodAdminService{
+public class PaymentMethodAdminServiceImp implements PaymentMethodAdminService {
 
     private final PaymentMethodAdminMapper paymentMethodAdminMapper;
     private final PaymentMethodRepository paymentMethodRepository;
     private final OrderRepository orderRepository;
 
+    private final FileUploadService fileUploadService;
+
 
 
     public PaymentMethodAdminServiceImp(PaymentMethodAdminMapper paymentMethodAdminMapper,
-            PaymentMethodRepository paymentMethodRepository, OrderRepository orderRepository) {
+            PaymentMethodRepository paymentMethodRepository, OrderRepository orderRepository,
+            FileUploadService fileUploadService) {
         this.paymentMethodAdminMapper = paymentMethodAdminMapper;
         this.paymentMethodRepository = paymentMethodRepository;
         this.orderRepository = orderRepository;
+        this.fileUploadService = fileUploadService;
     }
+
     @Override
     public List<PaymentMethodAdminDTO> getAllPaymentMethods() {
         return paymentMethodRepository.findAll()
@@ -40,9 +47,10 @@ public class PaymentMethodAdminServiceImp implements PaymentMethodAdminService{
                 .map(paymentMethodAdminMapper::convertToPaymentMethodAdminDTO)
                 .collect(Collectors.toList());
     }
+
     @Override
     @Transactional
-    public PaymentMethodAdminDTO createPaymentMethod(PaymentMethodCreateAdminDTO createDTO) {
+    public PaymentMethodAdminDTO createPaymentMethod(PaymentMethodCreateAdminDTO createDTO, MultipartFile file) throws IOException {
 
         // BƯỚC 1: Chuẩn hóa 'code' thành dạng slug (chữ thường, gạch nối)
         String normalizedCode = createDTO.getCode().toLowerCase().replaceAll("\\s+", "-");
@@ -51,18 +59,24 @@ public class PaymentMethodAdminServiceImp implements PaymentMethodAdminService{
         paymentMethodRepository.findByCode(normalizedCode).ifPresent(pm -> {
             // Ném lỗi với code gốc để người dùng dễ nhận biết
             throw new DuplicateResourceException(
-                "Code '" + createDTO.getCode() + "' đã tồn tại (dưới dạng '" + normalizedCode + "'). Vui lòng chọn một code khác."
-            );
+                    "Code '" + createDTO.getCode() + "' đã tồn tại (dưới dạng '" + normalizedCode
+                            + "'). Vui lòng chọn một code khác.");
         });
 
-        // BƯỚC 3: Kiểm tra trùng lặp 'name' 
+        // BƯỚC 3: Kiểm tra trùng lặp 'name'
         paymentMethodRepository.findByName(createDTO.getName()).ifPresent(pm -> {
-            throw new DuplicateResourceException("Tên phương thức thanh toán '" + createDTO.getName() + "' đã tồn tại.");
+            throw new DuplicateResourceException(
+                    "Tên phương thức thanh toán '" + createDTO.getName() + "' đã tồn tại.");
         });
+
+        if (file != null && !file.isEmpty()) {
+            String imageUrl = fileUploadService.uploadFile(file);
+            createDTO.setImageUrl(imageUrl);
+        }
 
         // BƯỚC 4: Chuyển đổi DTO sang Entity
         PaymentMethod newPaymentMethod = paymentMethodAdminMapper.convertCreateDTOToEntity(createDTO);
-        
+
         // BƯỚC 5: Gán code đã được chuẩn hóa cho Entity trước khi lưu
         newPaymentMethod.setCode(normalizedCode);
 
@@ -73,19 +87,36 @@ public class PaymentMethodAdminServiceImp implements PaymentMethodAdminService{
 
     @Override
     @Transactional
-    public PaymentMethodAdminDTO updatePaymentMethod(Long id, PaymentMethodUpdateAdminDTO updateDTO) {
+    public PaymentMethodAdminDTO updatePaymentMethod(Long id, PaymentMethodUpdateAdminDTO updateDTO, MultipartFile file) throws IOException {
         // BƯỚC 1: Tìm phương thức thanh toán cần cập nhật. Nếu không thấy, ném lỗi 404.
         PaymentMethod existingPaymentMethod = paymentMethodRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy phương thức thanh toán với ID: " + id));
 
-        // BƯỚC 2: Kiểm tra xem 'name' mới có bị trùng với một payment method khác không.
+        // BƯỚC 2: Kiểm tra xem 'name' mới có bị trùng với một payment method khác
+        // không.
         // Chỉ kiểm tra nếu 'name' thực sự bị thay đổi.
         if (!existingPaymentMethod.getName().equals(updateDTO.getName())) {
             paymentMethodRepository.findByName(updateDTO.getName()).ifPresent(pm -> {
-                throw new DuplicateResourceException("Tên phương thức thanh toán '" + updateDTO.getName() + "' đã tồn tại.");
+                throw new DuplicateResourceException(
+                        "Tên phương thức thanh toán '" + updateDTO.getName() + "' đã tồn tại.");
             });
         }
-        
+        if (file != null && !file.isEmpty()) {
+            // Lấy URL ảnh cũ để xóa
+            String oldImageUrl = existingPaymentMethod.getImageUrl();
+            
+            // Upload ảnh mới
+            String newImageUrl = fileUploadService.uploadFile(file);
+            updateDTO.setImageUrl(newImageUrl); // Cập nhật DTO với URL mới
+            
+            // Xóa ảnh cũ nếu tồn tại
+            if (oldImageUrl != null && !oldImageUrl.isEmpty()) {
+                fileUploadService.deleteFile(oldImageUrl);
+            }
+        } else {
+            // Nếu không có file mới, giữ lại ảnh cũ
+            updateDTO.setImageUrl(existingPaymentMethod.getImageUrl());
+        }
         // BƯỚC 3: Dùng mapper để cập nhật các trường của đối tượng đã tồn tại.
         paymentMethodAdminMapper.convertUpdateDTOToEntity(updateDTO, existingPaymentMethod);
 
@@ -99,17 +130,28 @@ public class PaymentMethodAdminServiceImp implements PaymentMethodAdminService{
     @Override
     @Transactional
     public ResponseMessageDTO deletePaymentMethod(Long id) {
-      if(!paymentMethodRepository.existsById(id)) {
-        throw new NotFoundException("Không tìm thấy phương thức thanh toán với ID: " + id);
-        }
-
+        PaymentMethod paymentMethodToDelete = paymentMethodRepository.findById(id)
+            .orElseThrow(() -> new NotFoundException("Không tìm thấy phương thức thanh toán với ID: " + id));
         boolean isUsedInOrders = orderRepository.existsByPaymentMethodId(id);
         if (isUsedInOrders) {
-            throw new IllegalArgumentException("Không thể xóa phương thức này vì nó đã được sử dụng trong ít nhất 1 đơn hàng");
+            throw new IllegalArgumentException(
+                    "Không thể xóa phương thức này vì nó đã được sử dụng trong ít nhất 1 đơn hàng");
         }
+                // Xóa file ảnh liên quan (nếu có)
+                String imageUrl = paymentMethodToDelete.getImageUrl();
+                if (imageUrl != null && !imageUrl.isEmpty()) {
+                    fileUploadService.deleteFile(imageUrl);
+                }
+        
         paymentMethodRepository.deleteById(id);
         return new ResponseMessageDTO(HttpStatus.OK, "Xóa phương thức thanh toán với ID " + id + " thành công.");
     }
 
-    
+    @Override
+    public PaymentMethodAdminDTO getPaymentMethodById(Long id) {
+       PaymentMethod paymentMethod = paymentMethodRepository.findById(id)
+       .orElseThrow(() -> new NotFoundException("Không tìm thấy phương thức thanh toán với ID: " + id));
+        return paymentMethodAdminMapper.convertToPaymentMethodAdminDTO(paymentMethod);
+    }
+
 }

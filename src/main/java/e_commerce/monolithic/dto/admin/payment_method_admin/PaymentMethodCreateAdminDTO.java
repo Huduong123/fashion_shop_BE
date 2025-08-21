@@ -21,7 +21,7 @@ public class PaymentMethodCreateAdminDTO {
 
     @NotBlank(message = "Mô tả không được để trống")
     private String description;
-
+    private String imageUrl;
     @NotNull(message = "Loại phương thức thanh toán không được để trống")
     private PaymentMethodType type;
 

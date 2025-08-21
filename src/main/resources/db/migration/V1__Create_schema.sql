@@ -152,6 +152,7 @@ CREATE TABLE payment_methods(
     code VARCHAR(50) NOT NULL UNIQUE COMMENT 'Mã định danh duy nhất, dạng slug, dùng trong code',
     name VARCHAR(100) NOT NULL COMMENT 'Tên hiển thị ngắn gọn cho người dùng',
     description VARCHAR(255) NOT NULL COMMENT 'Mô tả chi tiết về phương thức thanh toán',
+    image_url VARCHAR(255) NULL COMMENT 'URL hình ảnh đại diện của phương thức thanh toán',
     is_enabled TINYINT(1) NOT NULL DEFAULT 1,
     type ENUM('OFFLINE', 'ONLINE_REDIRECT') NOT NULL COMMENT 'Loại phương thức thanh toán',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

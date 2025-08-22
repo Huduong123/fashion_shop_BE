@@ -2,6 +2,9 @@ package e_commerce.monolithic.repository;
 
 import e_commerce.monolithic.entity.ProductVariant;
 import e_commerce.monolithic.entity.ProductVariantSize;
+
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -25,4 +28,13 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
     // Đếm số sản phẩm sử dụng size
     @Query("SELECT COUNT(DISTINCT pvs.productVariant.product) FROM ProductVariantSize pvs WHERE pvs.size.id = :sizeId")
     long countProductsBySizeId(@Param("sizeId") Long sizeId);
+
+    /**
+     * TẢI DỮ LIỆU BỔ SUNG: Lấy danh sách các ProductVariant cùng với
+     * ProductVariantSizes của chúng.
+     */
+    @Query("SELECT DISTINCT pv FROM ProductVariant pv " +
+           "LEFT JOIN FETCH pv.productVariantSizes pvs " +
+           "WHERE pv IN :variants")
+    List<ProductVariant> findWithSizesByVariants(@Param("variants") List<ProductVariant> variants);
 }

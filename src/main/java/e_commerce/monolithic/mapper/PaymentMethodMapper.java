@@ -13,9 +13,11 @@ public class PaymentMethodMapper {
             return null;
         }
         return PaymentMethodDTO.builder()
+                .id(paymentMethod.getId())
                 .code(paymentMethod.getCode())
                 .name(paymentMethod.getName())
                 .description(paymentMethod.getDescription())
+                .imageUrl(paymentMethod.getImageUrl())
                 .type(paymentMethod.getType())
                 .build();
     }

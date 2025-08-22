@@ -52,5 +52,15 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
         boolean existsByPaymentMethodId(Long paymentMethodId);
 
 
-
+/**
+ * TÌM KIẾM MỚI: Lấy một đơn hàng với đầy đủ chi tiết lồng nhau
+ * để phục vụ cho việc xóa và hoàn kho.
+ * Tải sẵn (eager fetch) các OrderItem, ProductVariant, và ProductVariantSize.
+ */
+@Query("SELECT DISTINCT o FROM Order o " +
+"LEFT JOIN FETCH o.orderItems oi " +
+"LEFT JOIN FETCH oi.productVariant pv " +
+"LEFT JOIN FETCH oi.size s " +
+"WHERE o.id = :orderId")
+Optional<Order> findByIdWithItems(@Param("orderId") Long orderId);
 }

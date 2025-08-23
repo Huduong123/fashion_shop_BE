@@ -27,6 +27,7 @@ public class OrderMapper {
 
         return OrderItemResponseDTO.builder()
                 .productVariantId(variant.getId())
+                .productId(product.getId())
                 .productName(product.getName())
                 .colorName(variant.getColor().getName())
                 .sizeName(size.getName())
